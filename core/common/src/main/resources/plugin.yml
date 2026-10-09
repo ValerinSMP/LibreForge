@@ -33,6 +33,7 @@ softdepend:
   - FancyNpcs
   - HuskTowns
   - HuskClaims
+  - HuskSync
   - CustomCrops
   - CustomFishing
   - Lands

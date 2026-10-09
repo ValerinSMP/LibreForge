@@ -13,7 +13,7 @@ import com.willfp.libreforge.triggers.TriggerParameter
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.LivingEntity
 
-object EffectSoulRip : Effect<NoCompileData>("soul_rip") {
+object EffectSoulRip : Effect<DamageOrigin>("soul_rip") {
     override val description = "Damages nearby enemies within a radius and heals the player based on the damage dealt."
     override val categories = setOf("combat", "player")
 
@@ -55,9 +55,16 @@ object EffectSoulRip : Effect<NoCompileData>("soul_rip") {
             type = ArgType.BOOLEAN,
             default = "false"
         )
+        optional(
+            "damage_origin",
+            description = "Classifies this damage as normal, passive, or active.",
+            type = ArgType.STRING,
+            default = "NORMAL",
+            choices = listOf("NORMAL", "PASSIVE", "ACTIVE")
+        )
     }
 
-    override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+    override fun onTrigger(config: Config, data: TriggerData, compileData: DamageOrigin): Boolean {
         val player = data.player ?: return false
         val location = data.location ?: return false
         val radius = config.getDoubleFromExpression("radius", data)
@@ -65,6 +72,7 @@ object EffectSoulRip : Effect<NoCompileData>("soul_rip") {
         val healMultiplier = config.getOrNull("heal_multiplier") { getDoubleFromExpression(it, data) } ?: 1.0
         val trueDamage = config.getBool("true_damage")
         val source = if (config.getBool("use_source")) player else null
+        val provenance = DamageProvenance(compileData, source?.uniqueId)
 
         val targets = location.world?.getNearbyEntities(location, radius, radius, radius)
             ?.filterIsInstance<LivingEntity>()
@@ -75,7 +83,9 @@ object EffectSoulRip : Effect<NoCompileData>("soul_rip") {
         var totalHeal = 0.0
         for (entity in targets) {
             totalHeal += minOf(damage, entity.health)
-            entity.dealDamage(damage, source, trueDamage)
+            DamageMultiplierBypass.withProvenance(provenance) {
+                entity.dealDamage(damage, source, trueDamage)
+            }
         }
 
         val maxHealth = player.getAttribute(Attribute.MAX_HEALTH)!!.value
@@ -83,4 +93,7 @@ object EffectSoulRip : Effect<NoCompileData>("soul_rip") {
 
         return true
     }
+
+    override fun makeCompileData(config: Config, context: com.willfp.libreforge.ViolationContext) =
+        damageOrigin(config)
 }

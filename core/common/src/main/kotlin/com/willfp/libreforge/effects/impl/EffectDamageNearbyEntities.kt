@@ -16,7 +16,12 @@ import com.willfp.libreforge.triggers.TriggerParameter
 import org.bukkit.entity.LivingEntity
 import java.util.UUID
 
-object EffectDamageNearbyEntities : Effect<Collection<TestableEntity>>("damage_nearby_entities") {
+data class DamageNearbyEntitiesCompileData(
+    val entities: Collection<TestableEntity>,
+    val origin: DamageOrigin
+)
+
+object EffectDamageNearbyEntities : Effect<DamageNearbyEntitiesCompileData>("damage_nearby_entities") {
     override val description = "Deals damage to all nearby entities within a radius."
     override val categories = setOf("combat")
 
@@ -70,9 +75,16 @@ object EffectDamageNearbyEntities : Effect<Collection<TestableEntity>>("damage_n
             type = ArgType.BOOLEAN,
             default = "true"
         )
+        optional(
+            "damage_origin",
+            description = "Classifies this damage as normal, passive, or active.",
+            type = ArgType.STRING,
+            default = "NORMAL",
+            choices = listOf("NORMAL", "PASSIVE", "ACTIVE")
+        )
     }
 
-    override fun onTrigger(config: Config, data: TriggerData, compileData: Collection<TestableEntity>): Boolean {
+    override fun onTrigger(config: Config, data: TriggerData, compileData: DamageNearbyEntitiesCompileData): Boolean {
         val location = data.location ?: return false
         val world = location.world ?: return false
         val player = data.player ?: return false
@@ -82,6 +94,8 @@ object EffectDamageNearbyEntities : Effect<Collection<TestableEntity>>("damage_n
         val trueDamage = config.getBool("true_damage")
         val damage = config.getDoubleFromExpression("damage", data)
         val damageSelf = config.getBoolOrNull("damage_self") ?: true
+        val source = player.takeIf { useSource }
+        val provenance = DamageProvenance(compileData.origin, source?.uniqueId)
 
         for (entity in world.getNearbyEntities(location, radius, radius, radius)) {
             if (entity.hasMetadata("ignore-nearby-damage") || damagedEntities.contains(entity.uniqueId)) {
@@ -96,8 +110,8 @@ object EffectDamageNearbyEntities : Effect<Collection<TestableEntity>>("damage_n
                 continue
             }
 
-            if (compileData.isNotEmpty()) {
-                if (compileData.none { it.matches(entity) }) {
+            if (compileData.entities.isNotEmpty()) {
+                if (compileData.entities.none { it.matches(entity) }) {
                     continue
                 }
             }
@@ -111,13 +125,15 @@ object EffectDamageNearbyEntities : Effect<Collection<TestableEntity>>("damage_n
 
             damagedEntities.add(entity.uniqueId)
 
-            entity.dealDamage(
-                damage,
-                source = if (useSource) player else null,
-                trueDamage = trueDamage,
-                checkAntigrief = false,
-                allowSelf = damageSelf
-            )
+            DamageMultiplierBypass.withProvenance(provenance) {
+                entity.dealDamage(
+                    damage,
+                    source = source,
+                    trueDamage = trueDamage,
+                    checkAntigrief = false,
+                    allowSelf = damageSelf
+                )
+            }
         }
 
         damagedEntities.clear()
@@ -125,7 +141,8 @@ object EffectDamageNearbyEntities : Effect<Collection<TestableEntity>>("damage_n
         return true
     }
 
-    override fun makeCompileData(config: Config, context: ViolationContext): Collection<TestableEntity> {
-        return config.getStrings("entities").map { Entities.lookup(it) }
-    }
+    override fun makeCompileData(config: Config, context: ViolationContext) = DamageNearbyEntitiesCompileData(
+        config.getStrings("entities").map { Entities.lookup(it) },
+        damageOrigin(config)
+    )
 }

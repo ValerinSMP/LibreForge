@@ -16,6 +16,8 @@ import org.bukkit.inventory.ItemStack
 import java.util.UUID
 import java.time.Duration
 
+import com.willfp.libreforge.isBrokenItem
+
 /**
  * Finds holders on items for entities, allows for easy implementation of [HolderProvider].
  */
@@ -39,15 +41,26 @@ abstract class ItemHolderFinder<T : Holder> {
      * Find holders on an [entity] for a given [slot].
      */
     fun findHolders(entity: LivingEntity, slot: SlotType): List<TypedProvidedHolder<T>> {
-        val items = slot.getItems(entity)
-
-        val holders = items.flatMap { item ->
-            this.find(item)
-                .filter { holder -> isValidInSlot(holder, slot) }
-                .map { holder -> SlotItemProvidedHolder(holder, item, slot) }
-        }
-
+        val holders = mutableListOf<TypedProvidedHolder<T>>()
+        appendHolders(entity, slot, holders, mutableListOf())
         return holders
+    }
+
+    private fun appendHolders(
+        entity: LivingEntity,
+        slot: SlotType,
+        destination: MutableList<TypedProvidedHolder<T>>,
+        accepted: MutableList<T>
+    ) {
+        appendMatchingHolders(
+            items = slot.getItems(entity),
+            destination = destination,
+            accepted = accepted,
+            isBroken = { it.isBrokenItem },
+            find = { find(it) },
+            isValid = { isValidInSlot(it, slot) },
+            provide = { holder, item -> SlotItemProvidedHolder(holder, item, slot) }
+        )
     }
 
     /**
@@ -80,7 +93,12 @@ abstract class ItemHolderFinder<T : Holder> {
                 }
 
                 // Only check for non-combined slot types
-                slots.flatMap { slot -> findHolders(entity, slot) }
+                val holders = mutableListOf<TypedProvidedHolder<T>>()
+                val accepted = mutableListOf<T>()
+                for (slot in slots) {
+                    appendHolders(entity, slot, holders, accepted)
+                }
+                holders
             }
         }
     }

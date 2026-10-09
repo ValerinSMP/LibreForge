@@ -1,7 +1,7 @@
 package com.willfp.libreforge.effects.impl
 
 import com.willfp.eco.core.config.interfaces.Config
-import com.willfp.eco.core.map.listMap
+import com.willfp.libreforge.effects.templates.ActiveModifierLists
 import com.willfp.libreforge.Dispatcher
 import com.willfp.libreforge.NoCompileData
 import com.willfp.libreforge.ProvidedHolder
@@ -15,7 +15,7 @@ object EffectKeepInventory : Effect<NoCompileData>("keep_inventory") {
     override val description = "Prevents the player from dropping their inventory on death."
     override val categories = setOf("player", "inventory")
 
-    private val players = listMap<UUID, UUID>()
+    private val players = ActiveModifierLists<UUID, UUID>()
 
     override fun onEnable(
         dispatcher: Dispatcher<*>,
@@ -24,11 +24,11 @@ object EffectKeepInventory : Effect<NoCompileData>("keep_inventory") {
         holder: ProvidedHolder,
         compileData: NoCompileData
     ) {
-        players[dispatcher.uuid].add(identifiers.uuid)
+        players.add(dispatcher.uuid, identifiers.uuid)
     }
 
     override fun onDisable(dispatcher: Dispatcher<*>, identifiers: Identifiers, holder: ProvidedHolder) {
-        players[dispatcher.uuid].remove(identifiers.uuid)
+        players.remove(dispatcher.uuid, identifiers.uuid)
     }
 
     @EventHandler(ignoreCancelled = true)

@@ -39,6 +39,7 @@ import com.willfp.libreforge.integrations.terraformgenerator.TerraformGeneratorI
 import com.willfp.libreforge.integrations.edprisoncore.EdPrisonCoreIntegration
 import com.willfp.libreforge.integrations.fancynpcs.FancyNPCsIntegration
 import com.willfp.libreforge.integrations.huskintegration.huskclaims.HuskClaimsIntegration
+import com.willfp.libreforge.integrations.huskintegration.husksync.HuskSyncIntegration
 import com.willfp.libreforge.integrations.huskintegration.husktowns.HuskTownsIntegration
 import com.willfp.libreforge.integrations.jobs.JobsIntegration
 import com.willfp.libreforge.integrations.lands.LandsIntegration
@@ -193,6 +194,9 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
 
     override fun createTasks() {
         dispatchedTriggerFactory.startTicking()
+        plugin.scheduler.runTimer(200, 200) {
+            com.willfp.libreforge.effects.arguments.impl.ArgumentCooldown.sweepExpired()
+        }
 
         // Poll for condition changes — staggered across 20 ticks by UUID to avoid per-tick spike.
         // Holders are presumed stable between events; pollEffects() skips the provider rescan.
@@ -224,9 +228,11 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
 
     override fun loadListeners(): List<Listener> {
         val listeners = mutableListOf(
+            ActiveAbilityPvpListener,
             EffectDataFixer,
             ItemRefreshListener,
-            EntityRefreshListener
+            EntityRefreshListener,
+            NonDestructiveBreakageListener
         )
 
         if (Prerequisite.HAS_PAPER.isMet) {
@@ -260,6 +266,7 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
             IntegrationLoader("UltimateMobCoins") { UltimateMobCoinsIntegration.load(this) },
             IntegrationLoader("HuskTowns") { HuskTownsIntegration.load(this) },
             IntegrationLoader("HuskClaims") { HuskClaimsIntegration.load(this) },
+            IntegrationLoader("HuskSync") { HuskSyncIntegration.load(this) },
             IntegrationLoader("CustomCrops") { CustomCropsIntegration.load(this) },
             IntegrationLoader("CustomFishing") { CustomFishingIntegration.load(this) },
             IntegrationLoader("PyroFishingPro") { PyroFishingProIntegration.load(this) },

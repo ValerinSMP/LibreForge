@@ -1,4 +1,9 @@
 dependencies {
+    testImplementation(kotlin("test"))
+    testImplementation("org.purpurmc.purpur:purpur-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly("net.william278.husksync:husksync-bukkit:3.8.7") {
+        isTransitive = false
+    }
     implementation("dev.romainguy:kotlin-math:1.6.0") {
         isTransitive = false
     }

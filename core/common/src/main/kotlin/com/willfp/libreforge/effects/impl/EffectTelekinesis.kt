@@ -43,7 +43,7 @@ object EffectTelekinesis : Effect<NoCompileData>("telekinesis") {
         )
     }
 
-    private val players = listMap<UUID, UUID>()
+    private val players = com.willfp.libreforge.effects.templates.ActiveModifierLists<UUID, UUID>()
 
     internal var allowTamedMobKills: Boolean = false
         private set
@@ -55,12 +55,12 @@ object EffectTelekinesis : Effect<NoCompileData>("telekinesis") {
         holder: ProvidedHolder,
         compileData: NoCompileData
     ) {
-        players[dispatcher.uuid].add(identifiers.uuid)
+        players.add(dispatcher.uuid, identifiers.uuid)
         allowTamedMobKills = config.getBoolOrNull("on_tamed_mob_kills") ?: false
     }
 
     override fun onDisable(dispatcher: Dispatcher<*>, identifiers: Identifiers, holder: ProvidedHolder) {
-        players[dispatcher.uuid].remove(identifiers.uuid)
+        players.remove(dispatcher.uuid, identifiers.uuid)
     }
 
     override fun postRegister() {

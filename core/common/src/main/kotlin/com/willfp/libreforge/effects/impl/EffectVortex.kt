@@ -3,7 +3,6 @@ package com.willfp.libreforge.effects.impl
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.eco.core.entities.Entities
 import com.willfp.libreforge.ArgType
-import com.willfp.libreforge.NoCompileData
 import com.willfp.libreforge.arguments
 import com.willfp.libreforge.dealDamage
 import com.willfp.libreforge.effects.Effect
@@ -15,7 +14,7 @@ import com.willfp.libreforge.triggers.TriggerData
 import com.willfp.libreforge.triggers.TriggerParameter
 import org.bukkit.entity.LivingEntity
 
-object EffectVortex : Effect<NoCompileData>("vortex") {
+object EffectVortex : Effect<DamageOrigin>("vortex") {
     override val description = "Pulls nearby entities toward the trigger location for a duration, then deals damage to all affected entities."
     override val categories = setOf("movement", "combat")
 
@@ -76,9 +75,16 @@ object EffectVortex : Effect<NoCompileData>("vortex") {
             type = ArgType.BOOLEAN,
             default = "false"
         )
+        optional(
+            "damage_origin",
+            description = "Classifies this damage as normal, passive, or active.",
+            type = ArgType.STRING,
+            default = "NORMAL",
+            choices = listOf("NORMAL", "PASSIVE", "ACTIVE")
+        )
     }
 
-    override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+    override fun onTrigger(config: Config, data: TriggerData, compileData: DamageOrigin): Boolean {
         val player = data.player ?: return false
         val origin = data.location?.clone() ?: return false
         val radius = config.getDoubleFromExpression("radius", data)
@@ -87,6 +93,7 @@ object EffectVortex : Effect<NoCompileData>("vortex") {
         val pullStrength = config.getOrNull("pull_strength") { getDoubleFromExpression(it, data) } ?: 0.3
         val trueDamage = config.getBool("true_damage")
         val source = if (config.getBool("use_source")) player else null
+        val provenance = DamageProvenance(compileData, source?.uniqueId)
 
         val whitelist = config.getStringsOrNull("whitelist")?.map { Entities.lookup(it) }
         val blacklist = config.getStrings("blacklist").map { Entities.lookup(it) }
@@ -114,11 +121,17 @@ object EffectVortex : Effect<NoCompileData>("vortex") {
                 }
 
             if (tick >= duration) {
-                affected.forEach { it.dealDamage(damage, source, trueDamage) }
+                affected.forEach {
+                    DamageMultiplierBypass.withProvenance(provenance) {
+                        it.dealDamage(damage, source, trueDamage)
+                    }
+                }
                 task.cancel()
             }
         }.runTaskTimer(0L, 1L)
 
         return true
     }
+
+    override fun makeCompileData(config: Config, context: com.willfp.libreforge.ViolationContext) = damageOrigin(config)
 }

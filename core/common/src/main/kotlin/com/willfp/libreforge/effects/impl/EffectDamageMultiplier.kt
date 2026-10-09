@@ -34,8 +34,11 @@ object EffectDamageMultiplier : Effect<NoCompileData>("damage_multiplier") {
     }
 
     override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
-        val multiplier = config.getDoubleFromExpression("multiplier", data)
+        if (DamageMultiplierBypass.isActive && !DamageMultiplierBypass.isAbilityOnly) {
+            return true
+        }
 
+        val multiplier = config.getDoubleFromExpression("multiplier", data)
         val event = data.event
 
         if (Bukkit.getPluginManager().isPluginEnabled("MythicMobs") && event is MythicDamageEvent) {

@@ -12,7 +12,7 @@ import com.willfp.libreforge.triggers.TriggerParameter
 import org.bukkit.entity.LivingEntity
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 
-object EffectReflect : Effect<NoCompileData>("reflect") {
+object EffectReflect : Effect<DamageOrigin>("reflect") {
     override val description = "Reflects a portion of incoming damage back at the attacker."
     override val categories = setOf("combat")
 
@@ -40,15 +40,28 @@ object EffectReflect : Effect<NoCompileData>("reflect") {
             type = ArgType.BOOLEAN,
             default = "false"
         )
+        optional(
+            "damage_origin",
+            description = "Classifies this damage as normal, passive, or active.",
+            type = ArgType.STRING,
+            default = "NORMAL",
+            choices = listOf("NORMAL", "PASSIVE", "ACTIVE")
+        )
     }
 
-    override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+    override fun onTrigger(config: Config, data: TriggerData, compileData: DamageOrigin): Boolean {
         val event = data.event as? EntityDamageByEntityEvent ?: return false
         val attacker = event.damager as? LivingEntity ?: return false
         val reflected = event.finalDamage * config.getDoubleFromExpression("multiplier", data)
         val trueDamage = config.getBool("true_damage")
         val source = if (config.getBool("use_source")) data.player else null
-        attacker.dealDamage(reflected, source, trueDamage)
+        val provenance = DamageProvenance(compileData, source?.uniqueId)
+        DamageMultiplierBypass.withProvenance(provenance) {
+            attacker.dealDamage(reflected, source, trueDamage)
+        }
         return true
     }
+
+    override fun makeCompileData(config: Config, context: com.willfp.libreforge.ViolationContext) =
+        damageOrigin(config)
 }

@@ -137,10 +137,10 @@ abstract class ElementLike : ConfigurableElement {
 
         var didTrigger = false
 
-        // Mutate data once (outside repeat loop) since input doesn't change between repeats
-        val mutatedData = mutators.mutate(trigger.data)
-
         fun trigger() {
+            // Repeat placeholders may change the mutation on every execution.
+            val mutatedData = mutators.mutate(trigger.data)
+
             // Set to true if triggered.
             didTrigger = didTrigger or doTrigger(
                 trigger.copy(

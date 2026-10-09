@@ -6,8 +6,7 @@ import com.willfp.libreforge.NoCompileData
 import com.willfp.libreforge.ProvidedHolder
 import com.willfp.libreforge.conditions.Condition
 import com.willfp.libreforge.get
-import com.willfp.libreforge.toDispatcher
-import com.willfp.libreforge.updateEffects
+import com.willfp.libreforge.conditions.refreshAfterStateChange
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -30,6 +29,6 @@ object ConditionIsSneaking : Condition<NoCompileData>("is_sneaking") {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun handle(event: PlayerToggleSneakEvent) {
-        event.player.toDispatcher().updateEffects()
+        refreshAfterStateChange(event.player)
     }
 }

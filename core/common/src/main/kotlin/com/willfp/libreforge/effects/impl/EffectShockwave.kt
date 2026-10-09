@@ -2,7 +2,6 @@ package com.willfp.libreforge.effects.impl
 
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.libreforge.ArgType
-import com.willfp.libreforge.NoCompileData
 import com.willfp.libreforge.arguments
 import com.willfp.libreforge.dealDamage
 import com.willfp.libreforge.effects.Effect
@@ -13,7 +12,7 @@ import com.willfp.libreforge.triggers.TriggerData
 import com.willfp.libreforge.triggers.TriggerParameter
 import org.bukkit.entity.LivingEntity
 
-object EffectShockwave : Effect<NoCompileData>("shockwave") {
+object EffectShockwave : Effect<DamageOrigin>("shockwave") {
     override val description = "Creates an expanding shockwave that knocks back and damages nearby entities."
     override val categories = setOf("combat", "movement")
 
@@ -61,9 +60,16 @@ object EffectShockwave : Effect<NoCompileData>("shockwave") {
             type = ArgType.BOOLEAN,
             default = "false"
         )
+        optional(
+            "damage_origin",
+            description = "Classifies this damage as normal, passive, or active.",
+            type = ArgType.STRING,
+            default = "NORMAL",
+            choices = listOf("NORMAL", "PASSIVE", "ACTIVE")
+        )
     }
 
-    override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+    override fun onTrigger(config: Config, data: TriggerData, compileData: DamageOrigin): Boolean {
         val player = data.player ?: return false
         val origin = player.location.clone()
         val radius = config.getDoubleFromExpression("radius", data)
@@ -72,6 +78,7 @@ object EffectShockwave : Effect<NoCompileData>("shockwave") {
         val knockback = config.getDoubleFromExpression("knockback", data)
         val trueDamage = config.getBool("true_damage")
         val source = if (config.getBool("use_source")) player else null
+        val provenance = DamageProvenance(compileData, source?.uniqueId)
 
         val hit = mutableSetOf<LivingEntity>()
         var pulse = 0
@@ -89,7 +96,9 @@ object EffectShockwave : Effect<NoCompileData>("shockwave") {
                         .subtract(origin.toVector())
                         .normalize()
                     entity.velocity = dir.multiply(knockback)
-                    entity.dealDamage(damage, source, trueDamage)
+                    DamageMultiplierBypass.withProvenance(provenance) {
+                        entity.dealDamage(damage, source, trueDamage)
+                    }
                 }
 
             if (pulse >= pulses) task.cancel()
@@ -97,4 +106,6 @@ object EffectShockwave : Effect<NoCompileData>("shockwave") {
 
         return true
     }
+
+    override fun makeCompileData(config: Config, context: com.willfp.libreforge.ViolationContext) = damageOrigin(config)
 }

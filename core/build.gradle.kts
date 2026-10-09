@@ -26,11 +26,6 @@ tasks {
         group = "build"
         description = "Builds a standalone libreforge jar with Kotlin relocated, placed in bin/"
 
-        doFirst {
-            val binDir = rootProject.layout.projectDirectory.dir("bin").asFile
-            if (binDir.exists()) binDir.listFiles()?.forEach { it.delete() }
-        }
-
         from(project(":core:common").sourceSets["main"].output)
         from(sourceSets["main"].output)
 
@@ -42,7 +37,7 @@ tasks {
         archiveBaseName.set("libreforge-standalone")
         archiveClassifier.set("")
         archiveVersion.set(rootProject.version.toString())
-        destinationDirectory.set(rootProject.layout.projectDirectory.dir("bin").asFile)
+        destinationDirectory.set(layout.buildDirectory)
 
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 

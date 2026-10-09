@@ -10,6 +10,7 @@ import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import java.util.UUID
 import java.time.Duration
+import com.willfp.libreforge.conditions.DiagnosticWindow
 
 
 /**
@@ -204,10 +205,12 @@ fun Dispatcher<*>.refreshHolders() {
  * Forcibly refresh holders, ignoring cooldown.
  */
 fun Dispatcher<*>.forceRefreshHolders() {
-    refreshFunctions.forEach { it(this) }
-    // Pre-populate cache so updateEffects() gets a hit instead of a miss
-    holderCache.put(this.uuid, this.computeHolders())
-    this.updateEffects()
+    measuredRefresh { tracePlayer, started ->
+        RefreshTracing.phase("refresh-functions") { refreshFunctions.forEach { it(this) } }
+        // Pre-populate cache so updateEffects() gets a hit instead of a miss
+        RefreshTracing.phase("holders") { holderCache.put(this.uuid, this.computeHolders()) }
+        this.updateEffectsMeasured(tracePlayer, "forced", started)
+    }
 }
 
 /**
@@ -220,8 +223,10 @@ fun Dispatcher<*>.forceRefreshHolders() {
  * or [forceRefreshHolders] which explicitly invalidate the cache.
  */
 internal fun Dispatcher<*>.pollEffects() {
-    refreshFunctions.forEach { it(this) }
-    this.updateEffects()
+    measuredRefresh { tracePlayer, started ->
+        RefreshTracing.phase("refresh-functions") { refreshFunctions.forEach { it(this) } }
+        this.updateEffectsMeasured(tracePlayer, "poll", started)
+    }
 }
 
 private val holderPlaceholderProviders = mutableListOf<(ProvidedHolder, Dispatcher<*>) -> Collection<NamedValue>>()
@@ -286,7 +291,10 @@ private fun Dispatcher<*>.computeHolders(): Collection<ProvidedHolder> {
         return emptyList()
     }
 
-    val holders = providers.flatMap { it.provide(this) }
+    RefreshTracing.holderRebuilt()
+    val holders = providers.flatMapIndexed { index, provider ->
+        RefreshTracing.measure({ "provider:$index:${provider.javaClass.name}" }) { provider.provide(this) }
+    }
 
     val old = previousHolders.get(this.uuid) ?: emptyList()
 
@@ -380,8 +388,10 @@ fun ProvidedHolder.getActiveEffects(dispatcher: Dispatcher<*>) =
 /**
  * Recalculate active effects.
  */
-fun Dispatcher<*>.calculateActiveEffects() =
-    this.holders.getProvidedActiveEffects(this)
+fun Dispatcher<*>.calculateActiveEffects(): List<ProvidedEffectBlock> {
+    val holders = RefreshTracing.phase("holders") { this.holders }
+    return RefreshTracing.phase("conditions") { holders.getProvidedActiveEffects(this) }
+}
 
 /**
  * The active effects.
@@ -398,45 +408,95 @@ val Dispatcher<*>.providedActiveEffects: List<ProvidedEffectBlock>
 /**
  * Update the active effects.
  */
+private val refreshDiagnosticWindow = DiagnosticWindow()
+
 fun Dispatcher<*>.updateEffects() {
+    measuredRefresh { tracePlayer, started ->
+        this.updateEffectsMeasured(tracePlayer, "direct", started)
+    }
+}
+
+private fun Dispatcher<*>.measuredRefresh(action: (Player?, Long) -> Unit) {
+    val tracePlayer = if (plugin.configYml.getBool("diagnostics.effects-refresh.enabled")) {
+        get<Player>()?.takeIf { player ->
+            val filter = plugin.configYml.getString("diagnostics.effects-refresh.player")
+            !filter.isNullOrBlank() && (filter == "*" || filter.equals(player.name, true)) &&
+                    refreshDiagnosticWindow.allow(System.nanoTime(), 2)
+        }
+    } else null
+    RefreshTracing.scoped(tracePlayer != null) {
+        action(tracePlayer, if (tracePlayer != null) System.nanoTime() else 0L)
+    }
+}
+
+private fun Dispatcher<*>.updateEffectsMeasured(tracePlayer: Player?, source: String, refreshStarted: Long) {
+    val started = if (tracePlayer != null) System.nanoTime() else 0L
     val before = this.providedActiveEffects
     val after = this.calculateActiveEffects()
+    val calculated = if (tracePlayer != null) System.nanoTime() else 0L
 
-    previousStates[this.uuid] = after
+    val (afterWithOcc, added, removed) = RefreshTracing.phase("diff") {
+        previousStates[this.uuid] = after
 
-    // Pair each block with its occurrence index so identity survives holders that are equal
-    // but physically distinct (e.g. an item roaming between inventory slots), while distinct
-    // holders sharing the same id still get distinct occurrences and stack correctly.
-    val beforeWithOcc = before.withOccurrences()
-    val afterWithOcc = after.withOccurrences()
+        // Preserve identity, ordering and multiplicity of physically distinct holders.
+        val beforeWithOcc = before.withOccurrences()
+        val afterWithOcc = after.withOccurrences()
 
-    // Permanent effects also have a run order, so we need to sort them.
-    val added = (afterWithOcc without beforeWithOcc).sortedBy { it.first }
-    val removed = (beforeWithOcc without afterWithOcc).sortedBy { it.first }
-
-    for ((block, occurrence) in removed) {
-        val (effect, holder) = block
-        effect.disable(this, holder, occurrence = occurrence)
+        // Permanent effects also have a run order, so we need to sort them.
+        val added = orderedOccurrenceDifference(afterWithOcc, beforeWithOcc, compareBy { it.first })
+        val removed = orderedOccurrenceDifference(beforeWithOcc, afterWithOcc, compareBy { it.first })
+        Triple(afterWithOcc, added, removed)
     }
 
-    for ((block, occurrence) in added) {
-        val (effect, holder) = block
-        effect.enable(this, holder, occurrence = occurrence)
+    RefreshTracing.phase("callbacks-remove") {
+        for ((block, occurrence) in removed) {
+            val (effect, holder) = block
+            RefreshTracing.measure({ "remove:${holder.holder.id}" }) {
+                effect.disable(this, holder, occurrence = occurrence)
+            }
+        }
+    }
+
+    RefreshTracing.phase("callbacks-add") {
+        for ((block, occurrence) in added) {
+            val (effect, holder) = block
+            RefreshTracing.measure({ "add:${holder.holder.id}" }) {
+                effect.enable(this, holder, occurrence = occurrence)
+            }
+        }
     }
 
     // Reloading is now done by disabling all, then enabling all. Effect#reload is deprecated.
     // Since permanent effects are not allowed in chains, they are always done in the correct
     // order as mixing weights is not a concern.
-    val toReload = (afterWithOcc without added).sortedBy { it.first }
-
-    for ((block, occurrence) in toReload) {
-        val (effect, holder) = block
-        effect.disable(this, holder, occurrence = occurrence, isReload = true)
+    val toReload = RefreshTracing.phase("diff") {
+        orderedOccurrenceDifference(afterWithOcc, added, compareBy { it.first })
     }
 
-    for ((block, occurrence) in toReload) {
-        val (effect, holder) = block
-        effect.enable(this, holder, occurrence = occurrence, isReload = true)
+    RefreshTracing.phase("callbacks-reload-disable") {
+        for ((block, occurrence) in toReload) {
+            val (effect, holder) = block
+            RefreshTracing.measure({ "reload-disable:${holder.holder.id}" }) {
+                effect.disable(this, holder, occurrence = occurrence, isReload = true)
+            }
+        }
+    }
+
+    RefreshTracing.phase("callbacks-reload-enable") {
+        for ((block, occurrence) in toReload) {
+            val (effect, holder) = block
+            RefreshTracing.measure({ "reload-enable:${holder.holder.id}" }) {
+                effect.enable(this, holder, occurrence = occurrence, isReload = true)
+            }
+        }
+    }
+    if (tracePlayer != null) {
+        plugin.logger.info("Effects refresh: player=${tracePlayer.name} before=${before.size} after=${after.size} " +
+                "added=${added.size} removed=${removed.size} reloaded=${toReload.size} " +
+                "conditions_us=${(calculated - started) / 1000} total_us=${(System.nanoTime() - started) / 1000} " +
+                "source=$source refresh_total_us=${(System.nanoTime() - refreshStarted) / 1000} " +
+                "holder_rebuilds=${RefreshTracing.rebuildCount()} phases=[${RefreshTracing.phaseSummary()}] " +
+                "top=[${RefreshTracing.summary()}]")
     }
 }
 

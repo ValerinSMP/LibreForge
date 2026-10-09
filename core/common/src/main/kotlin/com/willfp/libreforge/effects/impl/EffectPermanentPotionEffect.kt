@@ -10,6 +10,7 @@ import com.willfp.libreforge.effects.Effect
 import com.willfp.libreforge.effects.Identifiers
 import com.willfp.libreforge.get
 import com.willfp.libreforge.plugin
+import com.willfp.libreforge.integrations.huskintegration.husksync.restoreMissingEffects
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.player.PlayerRespawnEvent
@@ -79,20 +80,31 @@ object EffectPermanentPotionEffect : Effect<NoCompileData>("permanent_potion_eff
 
     private fun refreshEffectsOfType(player: Player, type: PotionEffectType) {
         player.removePotionEffect(type)
-        val active = getHolderData(player)
-            .values
-            .filter { it.effectType == type }
-        if (active.isEmpty()) return
-        val best = active.maxByOrNull { it.level }!!
+        val best = selectPassivePotion(
+            getHolderData(player).values,
+            { it.effectType == type },
+            { it.level },
+            { it.particles },
+            { it.icon }
+        ) ?: return
         val effect = PotionEffect(
             type,
             DURATION,
             best.level,
             false,
-            active.any { it.particles },
-            active.any { it.icon }
+            best.particles,
+            best.icon
         )
         player.addPotionEffect(effect)
+    }
+
+    /** Restore only registered passive potions erased by an external data restore. */
+    fun restoreMissingEffects(player: Player) {
+        restoreMissingEffects(
+            getHolderData(player).values.map { it.effectType },
+            { player.hasPotionEffect(it) },
+            { refreshEffectsOfType(player, it) }
+        )
     }
 
     @EventHandler

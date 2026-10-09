@@ -52,6 +52,7 @@ object EffectMineVein : MineBlockEffect<FilterList>("mine_vein") {
     }
 
     override fun onTrigger(config: Config, data: TriggerData, compileData: FilterList): Boolean {
+        if (!shouldTrigger(config, data, compileData)) return false
         val block = data.block ?: data.location?.block ?: return false
         val player = data.player ?: return false
 

@@ -82,7 +82,6 @@ allprojects {
         }
 
         compileJava {
-            dependsOn(clean)
         }
 
         build {

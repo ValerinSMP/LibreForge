@@ -50,7 +50,7 @@ object EffectPlaySound : Effect<NoCompileData>("play_sound") {
     override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
         val player = data.player ?: return false
 
-        val sound = PlayableSound.create(config, config.toPlaceholderContext(data)) ?: return false
+        val sound = PlayableSound.create(config) ?: return false
         sound.playTo(player)
 
         return true

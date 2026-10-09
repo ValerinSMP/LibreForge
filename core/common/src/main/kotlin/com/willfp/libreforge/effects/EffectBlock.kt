@@ -1,6 +1,10 @@
 package com.willfp.libreforge.effects
 
 import com.willfp.eco.core.config.interfaces.Config
+import com.willfp.eco.core.blocks.Blocks
+import com.willfp.eco.core.integrations.antigrief.AntigriefManager
+import com.willfp.libreforge.effects.templates.isMiningTargetReachable
+import com.willfp.libreforge.effects.templates.miningPreflight
 import com.willfp.libreforge.Dispatcher
 import com.willfp.libreforge.ProvidedHolder
 import com.willfp.libreforge.conditions.ConditionList
@@ -72,6 +76,16 @@ class EffectBlock internal constructor(
 
     override fun doTrigger(trigger: DispatchedTrigger) =
         effects.trigger(trigger)
+
+    // ElementLike runs this before checking/paying arguments and executing child effects.
+    override fun shouldTrigger(trigger: DispatchedTrigger): Boolean =
+        miningPreflight(config.getBool("require_mining_target")) {
+            val data = trigger.data
+            if (!isMiningTargetReachable(data)) return@miningPreflight false
+            val player = data.player ?: return@miningPreflight false
+            val block = data.block ?: data.location?.block ?: return@miningPreflight false
+            !block.type.isAir && Blocks.hardness(block) >= 0 && AntigriefManager.canBreakBlock(player, block)
+        }
 
     override fun equals(other: Any?): Boolean {
         if (other !is EffectBlock) {

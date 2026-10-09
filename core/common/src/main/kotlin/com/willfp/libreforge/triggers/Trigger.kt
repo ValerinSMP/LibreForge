@@ -13,7 +13,9 @@ import com.willfp.libreforge.providedActiveEffects
 import com.willfp.libreforge.triggers.event.TriggerDispatchEvent
 import com.willfp.libreforge.triggers.impl.TriggerAltClick
 import org.bukkit.Bukkit
+import com.willfp.libreforge.effects.impl.DamageMultiplierBypass
 import org.bukkit.event.Cancellable
+import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.Listener
 
 abstract class Trigger(
@@ -102,6 +104,10 @@ abstract class Trigger(
         data: TriggerData,
         effects: List<ProvidedEffectBlock>
     ) {
+        if (DamageMultiplierBypass.isActive && !DamageMultiplierBypass.isAbilityOnly && data.event is EntityDamageEvent) {
+            return
+        }
+
         // Do this first to filter disabled triggers
         val dispatch = plugin.dispatchedTriggerFactory.create(dispatcher, this, data) ?: return
 

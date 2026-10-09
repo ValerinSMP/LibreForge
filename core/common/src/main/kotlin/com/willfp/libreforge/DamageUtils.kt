@@ -2,6 +2,8 @@ package com.willfp.libreforge
 
 import com.willfp.eco.core.Prerequisite
 import com.willfp.eco.core.integrations.antigrief.AntigriefManager
+import com.willfp.libreforge.effects.impl.DamageMultiplierBypass
+import com.willfp.libreforge.effects.impl.DamageOrigin
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 
@@ -16,7 +18,7 @@ fun LivingEntity.dealDamage(
         return false
     }
 
-    if (trueDamage) {
+    if (trueDamage && DamageMultiplierBypass.current?.origin != DamageOrigin.ACTIVE) {
         if (amount >= this.health) {
             this.health = 0.0
             if (Prerequisite.HAS_PAPER.isMet) {

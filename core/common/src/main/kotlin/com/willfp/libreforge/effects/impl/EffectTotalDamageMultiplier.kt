@@ -34,6 +34,10 @@ object EffectTotalDamageMultiplier : Effect<NoCompileData>("total_damage_multipl
     override val runOrder = RunOrder.END
 
     override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+        if (DamageMultiplierBypass.isActive && !DamageMultiplierBypass.isAbilityOnly) {
+            return true
+        }
+
         val event = data.event as? EntityDamageEvent ?: return false
         event.damage *= config.getDoubleFromExpression("multiplier", data)
 

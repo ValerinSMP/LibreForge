@@ -6,13 +6,13 @@ import com.willfp.libreforge.triggers.placeholders.TriggerPlaceholder
 
 object TriggerPlaceholderDistance : TriggerPlaceholder("distance") {
     override fun createPlaceholders(data: TriggerData): Collection<NamedValue> {
-        val victim = data.victim ?: return emptyList()
         val player = data.player ?: return emptyList()
+        val targetLoc = data.victim?.location ?: data.location ?: return emptyList()
 
         return listOf(
             NamedValue(
                 "distance",
-                player.location.toVector().distance(victim.location.toVector())
+                player.location.toVector().distance(targetLoc.toVector())
             )
         )
     }

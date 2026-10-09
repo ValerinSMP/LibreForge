@@ -26,7 +26,7 @@ abstract class ChanceMultiplierEffect(id: String) : Effect<NoCompileData>(id) {
         )
     }
 
-    private val modifiers = listMap<UUID, IdentifiedModifier>()
+    private val modifiers = ActiveModifierLists<UUID, IdentifiedModifier>()
 
     override fun onEnable(
         dispatcher: Dispatcher<*>,
@@ -35,13 +35,13 @@ abstract class ChanceMultiplierEffect(id: String) : Effect<NoCompileData>(id) {
         holder: ProvidedHolder,
         compileData: NoCompileData
     ) {
-        modifiers[dispatcher.uuid].add(IdentifiedModifier(identifiers.uuid) {
+        modifiers.add(dispatcher.uuid, IdentifiedModifier(identifiers.uuid) {
             config.getDoubleFromExpression("chance", dispatcher.get<Player>()!!)
         })
     }
 
     override fun onDisable(dispatcher: Dispatcher<*>, identifiers: Identifiers, holder: ProvidedHolder) {
-        modifiers[dispatcher.uuid].removeIf { it.uuid == identifiers.uuid }
+        modifiers.removeIf(dispatcher.uuid) { it.uuid == identifiers.uuid }
     }
 
     protected fun passesChance(dispatcher: Dispatcher<*>): Boolean {

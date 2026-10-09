@@ -24,15 +24,11 @@ class ConditionList(
      * Get if all conditions are met, triggering effects if not.
      */
     fun areMetAndTrigger(trigger: DispatchedTrigger): Boolean =
-        filterNot { it.isMet(trigger.dispatcher, trigger.data.holder) }
-            .also { notMet ->
-                if (notMet.isEmpty()) {
-                    return true
-                }
-
-                notMet.forEach { it.notMetEffects?.trigger(trigger) }
-            }
-            .let { false }
+        evaluateConditionsAndTriggerFailures(
+            this,
+            { it.isMet(trigger.dispatcher, trigger.data.holder) },
+            { it.notMetEffects?.trigger(trigger) }
+        )
 
     /**
      * Get if any conditions are not met and should be shown.

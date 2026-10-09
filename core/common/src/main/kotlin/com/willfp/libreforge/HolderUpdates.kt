@@ -2,6 +2,8 @@ package com.willfp.libreforge
 
 import com.willfp.eco.core.cache.EcoCache
 import com.willfp.eco.core.events.ArmorChangeEvent
+import com.willfp.libreforge.effects.impl.EffectPermanentPotionEffect
+import com.willfp.libreforge.integrations.huskintegration.husksync.refreshAfterSync
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -70,7 +72,13 @@ object ItemRefreshListener : Listener {
 
     @EventHandler
     fun onRespawn(event: PlayerRespawnEvent) {
-        event.player.toDispatcher().refreshHolders()
+        val player = event.player
+        refreshAfterSync(
+            schedule = { action -> plugin.scheduler.run { action() } },
+            isOnline = { player.isOnline },
+            refreshHolders = { player.toDispatcher().forceRefreshHolders() },
+            restorePotions = { EffectPermanentPotionEffect.restoreMissingEffects(player) }
+        )
     }
 
     @EventHandler

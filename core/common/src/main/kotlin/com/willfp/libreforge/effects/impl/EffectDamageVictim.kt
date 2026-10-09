@@ -2,7 +2,7 @@ package com.willfp.libreforge.effects.impl
 
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.libreforge.ArgType
-import com.willfp.libreforge.NoCompileData
+import com.willfp.libreforge.ViolationContext
 import com.willfp.libreforge.arguments
 import com.willfp.libreforge.dealDamage
 import com.willfp.libreforge.effects.Effect
@@ -10,8 +10,9 @@ import com.willfp.libreforge.getDoubleFromExpression
 import com.willfp.libreforge.triggers.TriggerData
 import com.willfp.libreforge.triggers.TriggerParameter
 
+data class DamageVictimCompileData(val origin: DamageOrigin = DamageOrigin.NORMAL)
 
-object EffectDamageVictim : Effect<NoCompileData>("damage_victim") {
+object EffectDamageVictim : Effect<DamageVictimCompileData>("damage_victim") {
     override val description = "Deals damage to the victim."
     override val categories = setOf("combat")
 
@@ -39,22 +40,33 @@ object EffectDamageVictim : Effect<NoCompileData>("damage_victim") {
             type = ArgType.BOOLEAN,
             default = "false"
         )
+        optional(
+            "damage_origin",
+            description = "Classifies this damage as normal, passive, or active.",
+            type = ArgType.STRING,
+            default = "NORMAL",
+            choices = listOf("NORMAL", "PASSIVE", "ACTIVE")
+        )
     }
 
-    override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+    override fun makeCompileData(config: Config, context: ViolationContext): DamageVictimCompileData =
+        DamageVictimCompileData(damageOrigin(config))
+
+    override fun onTrigger(config: Config, data: TriggerData, compileData: DamageVictimCompileData): Boolean {
         val victim = data.victim ?: return false
         val player = data.player
-
         val damage = config.getDoubleFromExpression("damage", data)
-        val useSource = config.getBool("use_source")
+        val source = if (config.getBool("use_source")) player else null
+        val provenance = DamageProvenance(compileData.origin, source?.uniqueId)
 
-        victim.dealDamage(
-            damage,
-            source = if (useSource) player else null,
-            trueDamage = config.getBool("true_damage"),
-            checkAntigrief = false
-        )
-
-        return true
+        return DamageMultiplierBypass.withProvenance(provenance) {
+            victim.dealDamage(
+                damage,
+                source = source,
+                trueDamage = config.getBool("true_damage"),
+                checkAntigrief = false
+            )
+            true
+        }
     }
 }

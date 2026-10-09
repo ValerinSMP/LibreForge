@@ -24,7 +24,7 @@ abstract class MultiplierEffect(id: String) : Effect<NoCompileData>(id) {
         )
     }
 
-    private val modifiers = listMap<UUID, IdentifiedModifier>()
+    private val modifiers = ActiveModifierLists<UUID, IdentifiedModifier>()
 
     override fun onEnable(
         dispatcher: Dispatcher<*>,
@@ -33,13 +33,13 @@ abstract class MultiplierEffect(id: String) : Effect<NoCompileData>(id) {
         holder: ProvidedHolder,
         compileData: NoCompileData
     ) {
-        modifiers[dispatcher.uuid].add(IdentifiedModifier(identifiers.uuid) {
+        modifiers.add(dispatcher.uuid, IdentifiedModifier(identifiers.uuid) {
             config.getDoubleFromExpression("multiplier", dispatcher.get<Player>()!!)
         })
     }
 
     override fun onDisable(dispatcher: Dispatcher<*>, identifiers: Identifiers, holder: ProvidedHolder) {
-        modifiers[dispatcher.uuid].removeIf { it.uuid == identifiers.uuid }
+        modifiers.removeIf(dispatcher.uuid) { it.uuid == identifiers.uuid }
     }
 
     protected fun getMultiplier(dispatcher: Dispatcher<*>): Double {

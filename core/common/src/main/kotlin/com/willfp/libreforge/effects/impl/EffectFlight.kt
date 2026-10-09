@@ -1,7 +1,7 @@
 package com.willfp.libreforge.effects.impl
 
 import com.willfp.eco.core.config.interfaces.Config
-import com.willfp.eco.core.map.listMap
+import com.willfp.libreforge.effects.templates.ActiveModifierLists
 import com.willfp.libreforge.Dispatcher
 import com.willfp.libreforge.NoCompileData
 import com.willfp.libreforge.ProvidedHolder
@@ -17,7 +17,7 @@ object EffectFlight : Effect<NoCompileData>("flight") {
 
     override val shouldReload = false
 
-    private val players = listMap<UUID, UUID>()
+    private val players = ActiveModifierLists<UUID, UUID>()
 
     override fun onEnable(
         dispatcher: Dispatcher<*>,
@@ -28,14 +28,14 @@ object EffectFlight : Effect<NoCompileData>("flight") {
     ) {
         val player = dispatcher.get<Player>() ?: return
 
-        players[player.uniqueId].add(identifiers.uuid)
+        players.add(player.uniqueId, identifiers.uuid)
         player.allowFlight = players[player.uniqueId].isNotEmpty()
     }
 
     override fun onDisable(dispatcher: Dispatcher<*>, identifiers: Identifiers, holder: ProvidedHolder) {
         val player = dispatcher.get<Player>() ?: return
 
-        players[player.uniqueId].remove(identifiers.uuid)
+        players.remove(player.uniqueId, identifiers.uuid)
         player.allowFlight = players[player.uniqueId].isNotEmpty()
     }
 }

@@ -21,7 +21,9 @@ import kotlin.math.ceil
 
 object ArgumentCooldown : EffectArgument<Chain?>("cooldown") {
     // Maps cooldown groups to Player UUIDs mapped to expiry time
-    private val cooldownTracker = mutableMapOf<String, MutableMap<UUID, Long>>()
+    private val cooldownTracker = ExpiringCooldowns()
+
+    internal fun sweepExpired() { cooldownTracker.sweep(System.currentTimeMillis(), 256) }
 
     override fun isMet(element: ConfigurableElement, trigger: DispatchedTrigger, compileData: Chain?): Boolean {
         return getCooldown(element, trigger) <= 0
@@ -30,8 +32,7 @@ object ArgumentCooldown : EffectArgument<Chain?>("cooldown") {
     private fun getCooldown(element: ConfigurableElement, trigger: DispatchedTrigger): Int {
         val group = element.config.getStringOrNull("cooldown_group") ?: element.uuid.toString()
 
-        val effectEndTimes = cooldownTracker[group] ?: return 0
-        val endTime = effectEndTimes[trigger.dispatcher.uuid] ?: return 0
+        val endTime = cooldownTracker.get(group, trigger.dispatcher.uuid) ?: return 0
 
         val msLeft = endTime - System.currentTimeMillis()
         val secondsLeft = ceil(msLeft.toDouble() / 1000).toLong()
@@ -41,10 +42,8 @@ object ArgumentCooldown : EffectArgument<Chain?>("cooldown") {
     override fun ifMet(element: ConfigurableElement, trigger: DispatchedTrigger, compileData: Chain?) {
         val group = element.config.getStringOrNull("cooldown_group") ?: element.uuid.toString()
 
-        val effectEndTimes = cooldownTracker[group] ?: mutableMapOf()
-        effectEndTimes[trigger.dispatcher.uuid] = System.currentTimeMillis() +
-                (element.config.getDoubleFromExpression("cooldown", trigger.data) * 1000L).toLong()
-        cooldownTracker[group] = effectEndTimes
+        cooldownTracker.put(group, trigger.dispatcher.uuid, System.currentTimeMillis() +
+                (element.config.getDoubleFromExpression("cooldown", trigger.data) * 1000L).toLong())
     }
 
     override fun ifNotMet(element: ConfigurableElement, trigger: DispatchedTrigger, compileData: Chain?) {

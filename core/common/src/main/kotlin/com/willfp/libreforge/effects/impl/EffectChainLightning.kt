@@ -12,7 +12,7 @@ import com.willfp.libreforge.triggers.TriggerData
 import com.willfp.libreforge.triggers.TriggerParameter
 import org.bukkit.entity.LivingEntity
 
-object EffectChainLightning : Effect<NoCompileData>("chain_lightning") {
+object EffectChainLightning : Effect<DamageOrigin>("chain_lightning") {
     override val description = "Strikes lightning that chains to nearby entities, dealing damage at each jump."
     override val categories = setOf("combat", "visual")
 
@@ -55,9 +55,16 @@ object EffectChainLightning : Effect<NoCompileData>("chain_lightning") {
             type = ArgType.BOOLEAN,
             default = "false"
         )
+        optional(
+            "damage_origin",
+            description = "Classifies this damage as normal, passive, or active.",
+            type = ArgType.STRING,
+            default = "NORMAL",
+            choices = listOf("NORMAL", "PASSIVE", "ACTIVE")
+        )
     }
 
-    override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+    override fun onTrigger(config: Config, data: TriggerData, compileData: DamageOrigin): Boolean {
         val startVictim = data.victim ?: return false
         val jumps = config.getIntFromExpression("jumps", data)
         val range = config.getDoubleFromExpression("range", data)
@@ -65,6 +72,7 @@ object EffectChainLightning : Effect<NoCompileData>("chain_lightning") {
         val player = data.player
         val trueDamage = config.getBool("true_damage")
         val source = if (config.getBool("use_source")) player else null
+        val provenance = DamageProvenance(compileData, source?.uniqueId)
 
         val hit = mutableSetOf<LivingEntity>()
         var current = startVictim
@@ -72,7 +80,9 @@ object EffectChainLightning : Effect<NoCompileData>("chain_lightning") {
         repeat(jumps) {
             hit.add(current)
             current.world.strikeLightningEffect(current.location)
-            current.dealDamage(damage, source, trueDamage)
+            DamageMultiplierBypass.withProvenance(provenance) {
+                current.dealDamage(damage, source, trueDamage)
+            }
 
             val next = current.getNearbyEntities(range, range, range)
                 .filterIsInstance<LivingEntity>()
@@ -85,4 +95,7 @@ object EffectChainLightning : Effect<NoCompileData>("chain_lightning") {
 
         return true
     }
+
+    override fun makeCompileData(config: Config, context: com.willfp.libreforge.ViolationContext) =
+        damageOrigin(config)
 }

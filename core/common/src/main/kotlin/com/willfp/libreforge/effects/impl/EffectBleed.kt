@@ -3,7 +3,6 @@ package com.willfp.libreforge.effects.impl
 import com.willfp.eco.core.Prerequisite
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.libreforge.ArgType
-import com.willfp.libreforge.NoCompileData
 import com.willfp.libreforge.arguments
 import com.willfp.libreforge.dealDamage
 import com.willfp.libreforge.effects.Effect
@@ -15,7 +14,7 @@ import com.willfp.libreforge.triggers.TriggerParameter
 import com.willfp.libreforge.triggers.impl.TriggerKill
 
 
-object EffectBleed : Effect<NoCompileData>("bleed") {
+object EffectBleed : Effect<DamageOrigin>("bleed") {
     override val description = "Deals damage to the victim repeatedly over a set number of ticks."
     override val categories = setOf("combat")
 
@@ -56,9 +55,16 @@ object EffectBleed : Effect<NoCompileData>("bleed") {
             type = ArgType.BOOLEAN,
             default = "false"
         )
+        optional(
+            "damage_origin",
+            description = "Classifies this damage as normal, passive, or active.",
+            type = ArgType.STRING,
+            default = "NORMAL",
+            choices = listOf("NORMAL", "PASSIVE", "ACTIVE")
+        )
     }
 
-    override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+    override fun onTrigger(config: Config, data: TriggerData, compileData: DamageOrigin): Boolean {
         val victim = data.victim ?: return false
 
         val damage = config.getDoubleFromExpression("damage", data)
@@ -66,6 +72,7 @@ object EffectBleed : Effect<NoCompileData>("bleed") {
         val amount = config.getIntFromExpression("amount", data)
         val trueDamage = config.getBool("true_damage")
         val source = if (config.getBool("use_source")) data.player else null
+        val provenance = DamageProvenance(compileData, source?.uniqueId)
 
         var current = 0
 
@@ -87,7 +94,9 @@ object EffectBleed : Effect<NoCompileData>("bleed") {
                 }
             }
 
-            victim.dealDamage(damage, source, trueDamage)
+            DamageMultiplierBypass.withProvenance(provenance) {
+                victim.dealDamage(damage, source, trueDamage)
+            }
 
             if (current >= amount || killed) {
                 it.cancel()
@@ -96,4 +105,6 @@ object EffectBleed : Effect<NoCompileData>("bleed") {
 
         return true
     }
+
+    override fun makeCompileData(config: Config, context: com.willfp.libreforge.ViolationContext) = damageOrigin(config)
 }

@@ -26,8 +26,8 @@ abstract class MultiMultiplierEffect<T : Any>(id: String) : Effect<NoCompileData
         )
     }
 
-    private val globalModifiers = listMap<UUID, IdentifiedModifier>()
-    private val modifiers = nestedListMap<UUID, T, IdentifiedModifier>()
+    private val globalModifiers = ActiveModifierLists<UUID, IdentifiedModifier>()
+    private val modifiers = mutableMapOf<UUID, ActiveModifierLists<T, IdentifiedModifier>>()
 
     /**
      * The key to look for in arguments, e.g. "stat" or "skill".
@@ -45,23 +45,24 @@ abstract class MultiMultiplierEffect<T : Any>(id: String) : Effect<NoCompileData
             val elements = config.getStrings(key).mapNotNull { getElement(it) }
 
             for (element in elements) {
-                modifiers[dispatcher.uuid][element].add(IdentifiedModifier(identifiers.uuid) {
+                modifiers.getOrPut(dispatcher.uuid) { ActiveModifierLists() }.add(element, IdentifiedModifier(identifiers.uuid) {
                     config.getDoubleFromExpression("multiplier", dispatcher.get())
                 })
             }
         } else {
-            globalModifiers[dispatcher.uuid].add(IdentifiedModifier(identifiers.uuid) {
+            globalModifiers.add(dispatcher.uuid, IdentifiedModifier(identifiers.uuid) {
                 config.getDoubleFromExpression("multiplier", dispatcher.get())
             })
         }
     }
 
     override fun onDisable(dispatcher: Dispatcher<*>, identifiers: Identifiers, holder: ProvidedHolder) {
-        globalModifiers[dispatcher.uuid].removeIf { it.uuid == identifiers.uuid }
+        globalModifiers.removeIf(dispatcher.uuid) { it.uuid == identifiers.uuid }
 
         for (element in getAllElements()) {
-            modifiers[dispatcher.uuid][element].removeIf { it.uuid == identifiers.uuid }
+            modifiers[dispatcher.uuid]?.removeIf(element) { it.uuid == identifiers.uuid }
         }
+        if (modifiers[dispatcher.uuid]?.size == 0) modifiers.remove(dispatcher.uuid)
     }
 
     protected fun getMultiplier(dispatcher: Dispatcher<*>, element: T): Double {
@@ -71,7 +72,7 @@ abstract class MultiMultiplierEffect<T : Any>(id: String) : Effect<NoCompileData
             multiplier *= modifier.modifier
         }
 
-        for (modifier in modifiers[dispatcher.uuid][element]) {
+        for (modifier in modifiers[dispatcher.uuid]?.get(element) ?: emptyList()) {
             multiplier *= modifier.modifier
         }
 

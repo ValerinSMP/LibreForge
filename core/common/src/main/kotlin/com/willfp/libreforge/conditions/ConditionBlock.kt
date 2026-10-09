@@ -3,6 +3,7 @@ package com.willfp.libreforge.conditions
 import com.willfp.eco.core.cache.EcoCache
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.libreforge.Compiled
+import com.willfp.libreforge.RefreshTracing
 import com.willfp.libreforge.Dispatcher
 import com.willfp.libreforge.ProvidedHolder
 import com.willfp.libreforge.applyHolder
@@ -51,9 +52,13 @@ class ConditionBlock<T> internal constructor(
                 ?: plugin.configYml.getBool("conditions.default-state-off-main-thread")
         }
 
-        val withHolder = config.applyHolder(holder, dispatcher)
+        val withHolder = RefreshTracing.measure({ "prepare-condition:${condition.id}" }) {
+            config.applyHolder(holder, dispatcher)
+        }
 
-        val dispatcherMet = condition.isMet(dispatcher, withHolder, holder, compileData)
+        val dispatcherMet = RefreshTracing.measure({ "condition:${condition.id}" }) {
+            condition.isMet(dispatcher, withHolder, holder, compileData)
+        }
 
         val isMet = dispatcherMet xor isInverted
 

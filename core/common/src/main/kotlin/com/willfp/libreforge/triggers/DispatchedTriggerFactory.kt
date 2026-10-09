@@ -1,9 +1,7 @@
 package com.willfp.libreforge.triggers
 
 import com.willfp.eco.core.EcoPlugin
-import com.willfp.eco.core.map.listMap
 import com.willfp.libreforge.Dispatcher
-import java.util.UUID
 
 /*
 
@@ -14,7 +12,7 @@ Prevents multiple identical triggers from being triggered in the same tick.
 class DispatchedTriggerFactory(
     private val plugin: EcoPlugin
 ) {
-    private val dispatcherTriggers = listMap<UUID, Int>()
+    private val dispatcherTriggers = TickTriggerDeduplication()
 
 
     fun create(dispatcher: Dispatcher<*>, trigger: Trigger, data: TriggerData): DispatchedTrigger? {
@@ -23,11 +21,10 @@ class DispatchedTriggerFactory(
         }
 
         val hash = (trigger.hashCode() shl 5) xor data.hashCode()
-        if (hash in dispatcherTriggers[dispatcher.uuid]) {
+        if (!dispatcherTriggers.accept(dispatcher.uuid, hash)) {
             return null
         }
 
-        dispatcherTriggers[dispatcher.uuid].add(hash)
         val dispatchData = if (data.dispatcher == dispatcher) data else data.copy(dispatcher = dispatcher)
         return DispatchedTrigger(dispatcher, trigger, dispatchData)
     }

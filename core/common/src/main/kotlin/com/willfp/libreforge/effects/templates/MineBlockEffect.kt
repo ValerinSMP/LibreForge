@@ -26,8 +26,7 @@ abstract class MineBlockEffect<T : Any>(id: String) : Effect<T>(id) {
     )
 
     override fun shouldTrigger(config: Config, data: TriggerData, compileData: T): Boolean {
-        val block = data.block ?: data.location?.block ?: return false
-        return !block.hasMetadata(ignoreKey)
+        return isMiningTargetReachable(data)
     }
 
     /**

@@ -61,6 +61,7 @@ import com.willfp.libreforge.effects.impl.EffectDamageArmor
 import com.willfp.libreforge.effects.impl.EffectDamageItem
 import com.willfp.libreforge.effects.impl.EffectDamageMainhand
 import com.willfp.libreforge.effects.impl.EffectDamageMultiplier
+import com.willfp.libreforge.effects.impl.EffectPvpDamageMultiplier
 import com.willfp.libreforge.effects.impl.EffectDamageNearbyEntities
 import com.willfp.libreforge.effects.impl.EffectDamageOffhand
 import com.willfp.libreforge.effects.impl.EffectDamageTwice
@@ -565,6 +566,7 @@ object Effects : Registry<Effect<*>>() {
         register(EffectDamageItem)
         register(EffectDamageMainhand)
         register(EffectDamageMultiplier)
+        register(EffectPvpDamageMultiplier)
         register(EffectDamageNearbyEntities)
         register(EffectDamageOffhand)
         register(EffectDamageTwice)

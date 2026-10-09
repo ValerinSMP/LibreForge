@@ -1,6 +1,7 @@
 package com.willfp.libreforge.triggers.impl
 
 import com.willfp.libreforge.integrations.mythicmobs.utils.isMythicMob
+import com.willfp.libreforge.effects.impl.DamageMultiplierBypass
 import com.willfp.libreforge.toDispatcher
 import com.willfp.libreforge.triggers.Trigger
 import com.willfp.libreforge.triggers.TriggerData
@@ -46,7 +47,11 @@ object TriggerTakeDamage : Trigger("take_damage") {
         if (event.cause in ignoredCauses) return
         // If Damager (or Projectile Shooter) is MythicMob, then skip. Use 'take_mythic_damage' instead.
         if (event is EntityDamageByEntityEvent && event.damager.tryAsLivingEntity()?.isMythicMob() == true) return
-        if (event is EntityDamageByEntityEvent) return
+        if (event is EntityDamageByEntityEvent) {
+            val source = event.damager as? Player ?: return
+            val target = event.entity as? Player ?: return
+            if (!DamageMultiplierBypass.matchesActivePlayerDamage(source, target)) return
+        }
 
         val victim = event.entity
         this.dispatch(

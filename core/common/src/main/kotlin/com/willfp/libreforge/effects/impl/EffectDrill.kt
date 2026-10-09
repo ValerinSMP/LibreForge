@@ -69,6 +69,7 @@ object EffectDrill : MineBlockEffect<NoCompileData>("drill") {
     }
 
     override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+        if (!shouldTrigger(config, data, compileData)) return false
         val block = data.block ?: data.location?.block ?: return false
 
         val player = data.player ?: return false

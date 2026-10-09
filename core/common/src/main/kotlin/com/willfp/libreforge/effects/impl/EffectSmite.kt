@@ -9,7 +9,7 @@ import com.willfp.libreforge.effects.Effect
 import com.willfp.libreforge.triggers.TriggerData
 import com.willfp.libreforge.triggers.TriggerParameter
 
-object EffectSmite : Effect<NoCompileData>("smite") {
+object EffectSmite : Effect<DamageOrigin>("smite") {
     override val description = "Strikes the victim with lightning, dealing a configurable amount of damage."
     override val categories = setOf("combat", "world")
 
@@ -37,20 +37,30 @@ object EffectSmite : Effect<NoCompileData>("smite") {
             type = ArgType.BOOLEAN,
             default = "false"
         )
+        optional(
+            "damage_origin",
+            description = "Classifies this damage as normal, passive, or active.",
+            type = ArgType.STRING,
+            default = "NORMAL",
+            choices = listOf("NORMAL", "PASSIVE", "ACTIVE")
+        )
     }
 
-    override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
+    override fun onTrigger(config: Config, data: TriggerData, compileData: DamageOrigin): Boolean {
         val victim = data.victim ?: return false
         val damage = config.getDoubleFromExpression("damage", data.player)
         val useSource = config.getBool("use_source")
 
         victim.world.strikeLightningEffect(victim.location)
-        victim.dealDamage(
-            damage,
-            if (useSource) data.player else null,
-            config.getBool("true_damage")
-        )
+        val source = data.player?.takeIf { useSource }
+        val provenance = DamageProvenance(compileData, source?.uniqueId)
+        DamageMultiplierBypass.withProvenance(provenance) {
+            victim.dealDamage(damage, source, config.getBool("true_damage"))
+        }
 
         return true
     }
+
+    override fun makeCompileData(config: Config, context: com.willfp.libreforge.ViolationContext) =
+        damageOrigin(config)
 }

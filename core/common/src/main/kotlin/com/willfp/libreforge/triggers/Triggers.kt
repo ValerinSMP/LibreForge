@@ -3,6 +3,7 @@ package com.willfp.libreforge.triggers
 import com.willfp.eco.core.registry.Registry
 import com.willfp.libreforge.mutators.MutatorList
 import com.willfp.libreforge.triggers.impl.TriggerAltClick
+import com.willfp.libreforge.triggers.impl.TriggerActiveAbilityShieldBlock
 import com.willfp.libreforge.triggers.impl.TriggerBite
 import com.willfp.libreforge.triggers.impl.TriggerBlockItemDrop
 import com.willfp.libreforge.triggers.impl.TriggerBlockXpDrop
@@ -157,6 +158,7 @@ object Triggers : Registry<Trigger>() {
         register(TriggerGroupStatic)
         register(TriggerGroupGlobalStatic)
         register(TriggerAltClick)
+        register(TriggerActiveAbilityShieldBlock)
         register(TriggerBite)
         register(TriggerBlockItemDrop)
         register(TriggerBlockXpDrop)

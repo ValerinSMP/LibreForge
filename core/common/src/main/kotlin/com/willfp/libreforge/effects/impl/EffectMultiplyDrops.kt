@@ -59,20 +59,21 @@ object EffectMultiplyDrops : Effect<NoCompileData>("multiply_drops") {
 
         val multiplier = if (config.has("fortune")) {
             val fortune = config.getIntFromExpression("fortune", data)
-            (Math.random() * (fortune.toDouble() - 1) + 1.1).roundToInt()
+            if (fortune <= 0) 1 else 1 + (0..fortune).random()
         } else if (config.has("multiplier")) {
             config.getDoubleFromExpression("multiplier", data).roundToInt()
         } else 1
 
         event.addModifier {
+            val hasItemRestriction = config.has("on_items")
             var matches = true
-            if (config.has("on_items")) {
+            if (hasItemRestriction) {
                 val items = config.getStrings("on_items").map { string -> Items.lookup(string) }
                 matches = items.any { test -> test.matches(it) }
             }
 
-            if (it.maxStackSize > 1 && matches) {
-                if (it.type.isOccluding && isBlacklisting && !whitelist.matches(it)) {
+            if (matches) {
+                if (!hasItemRestriction && it.type.isOccluding && isBlacklisting && !whitelist.matches(it)) {
                     return@addModifier DropResult(it, 0)
                 }
 
