@@ -1,5 +1,6 @@
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation("com.willfp:eco:${findProperty("eco-version")}")
     testImplementation("org.purpurmc.purpur:purpur-api:1.21.4-R0.1-SNAPSHOT")
     compileOnly("net.william278.husksync:husksync-bukkit:3.8.7") {
         isTransitive = false
