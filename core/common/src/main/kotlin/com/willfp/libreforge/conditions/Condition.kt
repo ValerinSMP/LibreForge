@@ -3,7 +3,10 @@ package com.willfp.libreforge.conditions
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.libreforge.Compilable
 import com.willfp.libreforge.Dispatcher
+import com.willfp.libreforge.HolderChange
+import com.willfp.libreforge.HolderSignals
 import com.willfp.libreforge.ProvidedHolder
+import com.willfp.libreforge.SignalScope
 import com.willfp.libreforge.plugin
 import org.bukkit.event.Listener
 
@@ -15,6 +18,19 @@ abstract class Condition<T>(
      */
     open var isEnabled: Boolean = false
         protected set
+
+    /**
+     * The change signals that can change this condition's result, or null for a condition that is
+     * polled every condition interval.
+     */
+    open val invalidatedBy: Set<HolderChange>?
+        get() = null
+
+    /**
+     * If a signal from [invalidatedBy] touching only [scope] can change this condition's result
+     * for [holder]. Unknown scopes must return true.
+     */
+    open fun isInvalidatedBy(scope: SignalScope, holder: ProvidedHolder): Boolean = true
 
     /**
      * Enable the condition.
@@ -45,6 +61,7 @@ abstract class Condition<T>(
 
     final override fun onRegister() {
         plugin.runWhenEnabled {
+            HolderSignals.registerCondition(this)
             postRegister()
         }
     }

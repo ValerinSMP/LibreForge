@@ -2,6 +2,7 @@ package com.willfp.libreforge.integrations.huskintegration.husksync
 
 import com.willfp.eco.core.EcoPlugin
 import com.willfp.libreforge.effects.impl.EffectPermanentPotionEffect
+import com.willfp.libreforge.flushHolders
 import com.willfp.libreforge.forceRefreshHolders
 import com.willfp.libreforge.integrations.LoadableIntegration
 import com.willfp.libreforge.toDispatcher
@@ -27,7 +28,7 @@ private class HuskSyncEffectListener(private val plugin: EcoPlugin) : Listener {
         refreshAfterSync(
             schedule = { action -> plugin.scheduler.run { action() } },
             isOnline = { player.isOnline },
-            refreshHolders = { player.toDispatcher().forceRefreshHolders() },
+            refreshHolders = { player.toDispatcher().also { it.forceRefreshHolders(); it.flushHolders() } },
             restorePotions = { EffectPermanentPotionEffect.restoreMissingEffects(player) }
         )
     }

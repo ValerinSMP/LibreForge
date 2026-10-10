@@ -1,5 +1,7 @@
 package com.willfp.libreforge.filters
 
+import kotlin.reflect.KClass
+
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.libreforge.ArgType
 import com.willfp.libreforge.Compilable
@@ -25,6 +27,23 @@ abstract class Filter<T, V>(
     open val valueType: ArgType = ArgType.ANY
 
     /**
+     * For filters whose value is the constant(s) of an enum (usually a Bukkit enum such as
+     * org.bukkit.event.entity.EntityDamageEvent.DamageCause): the enum the value belongs to.
+     * Documentation-only — the wiki links to the enum's JavaDoc rather than listing constants,
+     * which drift between Minecraft versions. See ArgumentMeta.Regular.enumClass, the
+     * equivalent for arguments blocks.
+     */
+    open val valueEnumClass: KClass<out Enum<*>>? = null
+
+    /**
+     * If [getValue] depends on the trigger data only through placeholders and expressions in the
+     * config value at its key, so a value with neither can be read once. True for libreforge's
+     * own filters; filters from other plugins must opt in.
+     */
+    open val isValueCacheable: Boolean
+        get() = this.javaClass.classLoader === Filter::class.java.classLoader
+
+    /**
      * Fetch value from config.
      *
      * [data] is null when generating compile data.
@@ -42,12 +61,12 @@ abstract class Filter<T, V>(
         data: TriggerData,
         config: FilterBlock<T, V>
     ): Boolean {
-        val cfg = config.config
+        val value = config.valueFor(data)
 
         return if (config.isInverted) {
-            !isMet(data, getValue(cfg, data, "not_$id"), config.compileData)
+            !isMet(data, value, config.compileData)
         } else {
-            isMet(data, getValue(cfg, data, id), config.compileData)
+            isMet(data, value, config.compileData)
         }
     }
 

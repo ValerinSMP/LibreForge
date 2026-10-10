@@ -7,7 +7,6 @@ import com.willfp.eco.core.bstats.EcoMetricsChart
 import com.willfp.eco.core.command.impl.PluginCommand
 import com.willfp.eco.core.display.DisplayModule
 import com.willfp.eco.core.integrations.IntegrationLoader
-import com.willfp.eco.core.integrations.afk.AFKManager
 import com.willfp.eco.core.blocks.Blocks
 import com.willfp.eco.core.entities.Entities
 import com.willfp.eco.core.items.Items
@@ -98,9 +97,6 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
 
     private val displayModule = ItemFlagDisplay(this)
 
-    private var entityRefreshInterval = 20L
-    private var skipAFKPlayers = false
-
     init {
         plugin = this
     }
@@ -148,8 +144,7 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
     }
 
     override fun handleReload() {
-        entityRefreshInterval = configYml.getInt("refresh.entities.interval").toLong()
-        skipAFKPlayers = configYml.getBool("refresh.players.skip-afk-players")
+        HolderStates.reloadSettings()
 
         for (config in chainsYml.getSubsections("chains")) {
             Effects.register(
@@ -187,7 +182,7 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
 
         displayModule.reload()
 
-        clearAllHolderCaches()
+        HolderStates.resetAllStates()
 
         hasLoaded = true
     }
@@ -198,46 +193,24 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
             com.willfp.libreforge.effects.arguments.impl.ArgumentCooldown.sweepExpired()
         }
 
-        // Poll for condition changes — staggered across 20 ticks by UUID to avoid per-tick spike.
-        // Holders are presumed stable between events; pollEffects() skips the provider rescan.
-        plugin.scheduler.runTimer(20, 1, PlayerPollTask())
+        // Applies everything marked on holder states, at the start of every tick.
+        HolderStates.start()
+    }
 
-        if (configYml.getBool("refresh.entities.enabled")) {
-            /*
-            Poll for condition changes in entities.
-            Each world is offset by 3 ticks to prevent lag spikes.
-             */
-            var currentOffset = 30L
-            for (world in Bukkit.getWorlds()) {
-                plugin.scheduler.runTimer(currentOffset, configYml.getInt("refresh.entities.interval").toLong()) {
-                    for (entity in world.entities) {
-                        if (entity is LivingEntity) {
-                            entity.toDispatcher().pollEffects()
-                        }
-                    }
-                }
-                currentOffset += 3
-            }
-        }
-
-        // Poll for condition changes in global holders
-        this.scheduler.runTimer(25, 20) {
-            GlobalDispatcher.pollEffects()
-        }
+    override fun handleDisable() {
+        // Fallback, if nothing earlier in the disable ran the shutdown sweep.
+        HolderStates.shutdownSweep()
     }
 
     override fun loadListeners(): List<Listener> {
-        val listeners = mutableListOf(
+        val listeners = mutableListOf<Listener>(
             ActiveAbilityPvpListener,
             EffectDataFixer,
             ItemRefreshListener,
-            EntityRefreshListener,
             NonDestructiveBreakageListener
         )
 
-        if (Prerequisite.HAS_PAPER.isMet) {
-            listeners += PaperEffectDataFixer
-        }
+        listeners += HolderLifecycle.listeners()
 
         return listeners
     }
@@ -300,20 +273,6 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
         return listOf(
             displayModule
         )
-    }
-
-    private inner class PlayerPollTask : Runnable {
-        private var slot = 0
-
-        override fun run() {
-            val currentSlot = slot
-            slot = (slot + 1) % 20
-            for (player in Bukkit.getOnlinePlayers()) {
-                if ((player.uniqueId.leastSignificantBits.toInt() and Int.MAX_VALUE) % 20 != currentSlot) continue
-                if (skipAFKPlayers && AFKManager.isAfk(player)) continue
-                player.toDispatcher().pollEffects()
-            }
-        }
     }
 
     /**

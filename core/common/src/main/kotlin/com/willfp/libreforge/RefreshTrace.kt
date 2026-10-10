@@ -74,3 +74,21 @@ internal object RefreshTracing {
         return trace.measure(key(), action)
     }
 }
+
+private val refreshDiagnosticWindow = com.willfp.libreforge.conditions.DiagnosticWindow()
+
+internal fun <T> Dispatcher<*>.traceHolderRefresh(action: () -> T): T {
+    val player = if (plugin.configYml.getBool("diagnostics.effects-refresh.enabled")) {
+        get<org.bukkit.entity.Player>()?.takeIf { player ->
+            val filter = plugin.configYml.getString("diagnostics.effects-refresh.player")
+            !filter.isNullOrBlank() && (filter == "*" || filter.equals(player.name, true)) &&
+                refreshDiagnosticWindow.allow(System.nanoTime(), 2)
+        }
+    } else null
+    return RefreshTracing.scoped(player != null) {
+        val started = if (player != null) System.nanoTime() else 0L
+        try { action() } finally {
+            if (player != null) plugin.logger.info("Effects refresh: player=${player.name} source=holder-state total_us=${(System.nanoTime() - started) / 1000} holder_rebuilds=${RefreshTracing.rebuildCount()} phases=[${RefreshTracing.phaseSummary()}] top=[${RefreshTracing.summary()}]")
+        }
+    }
+}

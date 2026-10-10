@@ -12,17 +12,26 @@ Prevents multiple identical triggers from being triggered in the same tick.
 class DispatchedTriggerFactory(
     private val plugin: EcoPlugin
 ) {
+    // Written by triggers on any thread.
     private val dispatcherTriggers = TickTriggerDeduplication()
 
-
-    fun create(dispatcher: Dispatcher<*>, trigger: Trigger, data: TriggerData): DispatchedTrigger? {
+    fun create(
+        dispatcher: Dispatcher<*>,
+        trigger: Trigger,
+        data: TriggerData,
+        allowDuplicates: Boolean = false
+    ): DispatchedTrigger? {
         if (!trigger.isEnabled) {
             return null
         }
 
-        val hash = (trigger.hashCode() shl 5) xor data.hashCode()
-        if (!dispatcherTriggers.accept(dispatcher.uuid, hash)) {
-            return null
+        // Some triggers legitimately happen several times in the same tick with identical data,
+        // for example killing an entire stack of entities at once.
+        if (!allowDuplicates) {
+            val hash = (trigger.hashCode() shl 5) xor data.hashCode()
+            if (!dispatcherTriggers.accept(dispatcher.uuid, hash)) {
+                return null
+            }
         }
 
         val dispatchData = if (data.dispatcher == dispatcher) data else data.copy(dispatcher = dispatcher)

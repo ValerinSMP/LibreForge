@@ -1,17 +1,16 @@
 package com.willfp.libreforge.conditions
 
-import com.willfp.eco.core.cache.EcoCache
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.libreforge.Compiled
 import com.willfp.libreforge.RefreshTracing
 import com.willfp.libreforge.Dispatcher
+import com.willfp.libreforge.DynamicConfigs
+import com.willfp.libreforge.HolderStates
 import com.willfp.libreforge.ProvidedHolder
 import com.willfp.libreforge.applyHolder
 import com.willfp.libreforge.effects.Chain
 import com.willfp.libreforge.plugin
 import org.bukkit.Bukkit
-import java.util.UUID
-import java.time.Duration
 
 /**
  * A single condition config block.
@@ -30,10 +29,8 @@ class ConditionBlock<T> internal constructor(
      */
     val showNotMet = forceShowNotMet || notMetLines.isNotEmpty()
 
-    private val syncMetCache = EcoCache.builder<UUID, Boolean>()
-        .expireAfterAccess(Duration.ofSeconds(10))
-        .maxSize(1000)
-        .build()
+    // Holder placeholders only matter to a config that references a placeholder.
+    private val usesPlaceholders = DynamicConfigs.hasPlaceholder(config)
 
     /**
      * Check if the condition is met for a [dispatcher].
@@ -43,17 +40,18 @@ class ConditionBlock<T> internal constructor(
 
         Conditions are not thread-safe, so we must run them on the main thread.
         However, conditions being met or not needs to work on packet processing threads,
-        so we cache the synchronous result and return that if we are not on the main thread.
+        so the synchronous result for tracked dispatchers is kept and returned if we are not
+        on the main thread.
 
          */
 
         if (!Bukkit.isPrimaryThread()) {
-            return syncMetCache.get(dispatcher.uuid)
+            return HolderStates.conditionResult(dispatcher, this)
                 ?: plugin.configYml.getBool("conditions.default-state-off-main-thread")
         }
 
         val withHolder = RefreshTracing.measure({ "prepare-condition:${condition.id}" }) {
-            config.applyHolder(holder, dispatcher)
+            if (usesPlaceholders) config.applyHolder(holder, dispatcher) else config
         }
 
         val dispatcherMet = RefreshTracing.measure({ "condition:${condition.id}" }) {
@@ -62,7 +60,7 @@ class ConditionBlock<T> internal constructor(
 
         val isMet = dispatcherMet xor isInverted
 
-        syncMetCache.put(dispatcher.uuid, isMet)
+        HolderStates.recordConditionResult(dispatcher, this, isMet)
 
         return isMet
     }
