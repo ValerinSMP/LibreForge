@@ -61,6 +61,7 @@ permissions:
       libreforge.command.libreforge: true
       libreforge.command.reload: true
       libreforge.command.debug: true
+      libreforge.command.performance: true
       libreforge.command.trigger: true
       libreforge.command.getitemdata: true
       libreforge.command.points.*: true
@@ -83,6 +84,9 @@ permissions:
     default: op
   libreforge.command.debug:
     description: Allows the use of /libreforge debug
+    default: op
+  libreforge.command.performance:
+    description: Allows bounded performance captures and reports
     default: op
   libreforge.command.trigger:
     description: Allows the use of /libreforge trigger

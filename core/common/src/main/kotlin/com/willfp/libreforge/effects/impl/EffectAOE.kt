@@ -1,5 +1,7 @@
 package com.willfp.libreforge.effects.impl
 
+import com.willfp.libreforge.diagnostics.performanceScope
+
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.libreforge.ArgType
 import com.willfp.libreforge.ViolationContext
@@ -57,12 +59,14 @@ object EffectAOE : Effect<AOECompileData>("aoe") {
 
         val shape = compileData.shape ?: return false
 
-        for (entity in shape.getEntities(
+        val entities = performanceScope({ data.holder.holder.id.toString() }, { "aoe:selection" }) { shape.getEntities(
             location.toFloat3(),
             location.direction.toFloat3(),
             location.world,
             data
-        ).filterNot { it.uniqueId == data.dispatcher.uuid }) {
+        ).filterNot { it.uniqueId == data.dispatcher.uuid } }
+
+        for (entity in entities) {
             compileData.chain
                 ?.trigger(
                     data.copy(

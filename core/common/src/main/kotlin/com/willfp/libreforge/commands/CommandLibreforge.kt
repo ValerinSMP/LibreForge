@@ -1,5 +1,7 @@
 package com.willfp.libreforge.commands
 
+import com.willfp.libreforge.diagnostics.performanceScope
+
 import com.willfp.eco.core.EcoPlugin
 import com.willfp.eco.core.command.impl.PluginCommand
 import com.willfp.libreforge.plugin
@@ -17,6 +19,7 @@ object CommandLibreforge : PluginCommand(
             .addSubcommand(CommandItemLevel)
             .addSubcommand(CommandTrigger)
             .addSubcommand(CommandDebug)
+            .addSubcommand(CommandPerformance)
             .addSubcommand(CommandGetItemData)
     }
 

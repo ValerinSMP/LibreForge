@@ -58,5 +58,14 @@ messages:
 
   debug: "Logged information to server console"
 
+  performance-duration: "Duration must be between 60 and 180 seconds."
+  performance-started: "Performance capture started for %seconds% seconds."
+  performance-busy: "A performance capture or report export is already running."
+  performance-stopped: "Capture stopped. Use /libreforge performance report to view results."
+  performance-inactive: "No performance capture is running."
+  performance-status: "Capture %id%: %seconds%s elapsed; CPU available: %cpu%."
+  performance-no-report: "No performance report available."
+  performance-header: "Top operations by own %metric% time (instrumented coverage only):"
+
 picked-up-price-item: "&f+%price%"
 infinity: "∞"

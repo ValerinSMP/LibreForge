@@ -1,5 +1,7 @@
 package com.willfp.libreforge.triggers
 
+import com.willfp.libreforge.diagnostics.performanceScope
+
 import com.willfp.eco.core.registry.KRegistrable
 import com.willfp.libreforge.Dispatcher
 import com.willfp.libreforge.ProvidedEffectBlock
@@ -99,6 +101,14 @@ abstract class Trigger(
      * Dispatch the trigger on a collection of [ProvidedEffectBlock]s.
      */
     private fun dispatchOnEffects(
+        dispatcher: Dispatcher<*>,
+        data: TriggerData,
+        effects: List<ProvidedEffectBlock>
+    ) = performanceScope({ "libreforge:dispatch" }, { "trigger:$id" }) {
+        dispatchOnEffectsMeasured(dispatcher, data, effects)
+    }
+
+    private fun dispatchOnEffectsMeasured(
         dispatcher: Dispatcher<*>,
         data: TriggerData,
         effects: List<ProvidedEffectBlock>

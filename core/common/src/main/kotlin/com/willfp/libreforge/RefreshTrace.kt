@@ -1,5 +1,7 @@
 package com.willfp.libreforge
 
+import com.willfp.libreforge.diagnostics.performanceScope
+
 /** A bounded, per-refresh diagnostic snapshot; never a persistent player cache. */
 internal class RefreshTrace(private val clock: () -> Long = System::nanoTime) {
     private val durations = mutableMapOf<String, Long>()
@@ -64,9 +66,11 @@ internal object RefreshTracing {
         }
     }
 
-    fun <T> phase(key: String, action: () -> T): T {
-        val trace = current.get() ?: return action()
-        return trace.phase(key, action)
+    fun <T> phase(key: String, action: () -> T): T = performanceScope(
+        { "libreforge:refresh" }, { "refresh:$key" }
+    ) {
+        val trace = current.get()
+        if (trace == null) action() else trace.phase(key, action)
     }
 
     fun <T> measure(key: () -> String, action: () -> T): T {

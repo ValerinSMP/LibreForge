@@ -1,5 +1,7 @@
 package com.willfp.libreforge.effects
 
+import com.willfp.libreforge.diagnostics.performanceScope
+
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.eco.core.integrations.antigrief.AntigriefManager
 import com.willfp.eco.core.placeholder.InjectablePlaceholder
@@ -61,7 +63,12 @@ abstract class ElementLike : ConfigurableElement {
     /**
      * Mutate, filter, and then trigger.
      */
-    fun trigger(trigger: DispatchedTrigger): Boolean {
+    fun trigger(trigger: DispatchedTrigger): Boolean = performanceScope(
+        { trigger.data.holder.holder.id.toString() },
+        { "pipeline:${(this as? ChainElement<*>)?.effect?.id ?: "block"}:${trigger.trigger.id}" }
+    ) { triggerMeasured(trigger) }
+
+    private fun triggerMeasured(trigger: DispatchedTrigger): Boolean {
         // If own chain, defer all to elements.
         if (shouldDelegateExecution) {
             return doTrigger(trigger)
@@ -103,7 +110,7 @@ abstract class ElementLike : ConfigurableElement {
             config.addInjectablePlaceholder(trigger.placeholders)
         }
 
-        val data = mutators.mutate(trigger.data)
+        val data = performanceScope({ trigger.data.holder.holder.id.toString() }, { "pipeline:mutators" }) { mutators.mutate(trigger.data) }
 
         // Antigrief check here - not very clean, but it works.
         if (data.player != null && data.victim != null && data.victim != data.player) {
@@ -119,10 +126,8 @@ abstract class ElementLike : ConfigurableElement {
         injectPlaceholders(trigger.placeholders)
 
         // Filter
-        val filterResult = if (config.getBool("filters_before_mutation")) {
-            filters.isMet(trigger.data)
-        } else {
-            filters.isMet(data)
+        val filterResult = performanceScope({ trigger.data.holder.holder.id.toString() }, { "pipeline:filters" }) {
+            if (config.getBool("filters_before_mutation")) filters.isMet(trigger.data) else filters.isMet(data)
         }
 
         if (!filterResult) {
@@ -133,12 +138,12 @@ abstract class ElementLike : ConfigurableElement {
             return false
         }
 
-        val (argumentsMet, met, notMet) = arguments.checkMet(this, trigger)
+        val (argumentsMet, met, notMet) = performanceScope({ trigger.data.holder.holder.id.toString() }, { "pipeline:arguments" }) { arguments.checkMet(this, trigger) }
 
         // Only execute not met effects if the arguments were met.
         if (argumentsMet) {
             // Check conditions
-            if (!conditions.areMetAndTrigger(trigger)) {
+            if (!performanceScope({ trigger.data.holder.holder.id.toString() }, { "pipeline:conditions" }) { conditions.areMetAndTrigger(trigger) }) {
                 return false
             }
         } else {
@@ -148,7 +153,10 @@ abstract class ElementLike : ConfigurableElement {
 
         var didTrigger = false
 
-        fun trigger() {
+        fun trigger() = performanceScope(
+            { trigger.data.holder.holder.id.toString() },
+            { "execute:${(this as? ChainElement<*>)?.effect?.id ?: "block"}:${trigger.trigger.id}" }
+        ) {
             // Repeat placeholders may change the mutation on every execution.
             val mutatedData = mutators.mutate(trigger.data)
 

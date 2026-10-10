@@ -1,5 +1,8 @@
 package com.willfp.libreforge
 
+import com.willfp.libreforge.diagnostics.performanceScope
+import com.willfp.libreforge.diagnostics.performanceCount
+
 import com.willfp.eco.core.EcoPlugin
 import com.willfp.eco.core.integrations.afk.AFKManager
 import com.willfp.eco.core.placeholder.InjectablePlaceholder
@@ -185,6 +188,7 @@ internal object HolderStates {
     }
 
     fun markDirty(state: HolderState) {
+        performanceCount({ "signals:dirty-requests" })
         if (state.admitted && states[state.uuid] === state) {
             dirty += state
         }
@@ -403,7 +407,9 @@ internal object HolderStates {
     private fun bucketOf(uuid: UUID, buckets: Int): Int =
         (uuid.leastSignificantBits.toInt() and Int.MAX_VALUE) % buckets
 
-    private fun flush() {
+    private fun flush() = performanceScope({ "libreforge:framework" }, { "holders:flush" }) { flushMeasured() }
+
+    private fun flushMeasured() {
         if (shutdownSweepDone) {
             return
         }
@@ -412,6 +418,7 @@ internal object HolderStates {
 
         while (true) {
             val action = offThreadMarks.poll() ?: break
+            performanceCount({ "signals:off-thread-drained" })
             guarded("apply a mark", action)
         }
 

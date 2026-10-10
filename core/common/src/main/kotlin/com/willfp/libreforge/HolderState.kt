@@ -1,5 +1,8 @@
 package com.willfp.libreforge
 
+import com.willfp.libreforge.diagnostics.performanceScope
+import com.willfp.libreforge.diagnostics.performanceCount
+
 import com.willfp.eco.core.placeholder.InjectablePlaceholder
 import com.willfp.libreforge.conditions.Condition
 import com.willfp.libreforge.conditions.ConditionBlock
@@ -371,7 +374,10 @@ internal class HolderState(
     /**
      * Ask [provider] again. Returns true if its answer changed, so it must be applied.
      */
-    private fun ask(provider: HolderProvider, tick: Int, pass: ProvidePass): Boolean {
+    private fun ask(provider: HolderProvider, tick: Int, pass: ProvidePass): Boolean =
+        performanceScope({ "provider:${registeredProviderId(provider)}" }, { "holders:provider" }) { askMeasured(provider, tick, pass) }
+
+    private fun askMeasured(provider: HolderProvider, tick: Int, pass: ProvidePass): Boolean {
         val scopes = providerScopes.remove(provider)
 
         // A scoped ask only re-checks part of the provider, so only a full ask resets its polling age.
@@ -393,6 +399,7 @@ internal class HolderState(
             )
         )
 
+        performanceCount({ if (answer === rawAnswers[provider]) "providers:scoped-reused" else "providers:scoped-rebuilt" })
         if (answer === rawAnswers[provider] && answers.containsKey(provider)) {
             return false
         }
@@ -568,7 +575,9 @@ internal class HolderState(
      * Apply everything marked. Returns true if some work was held back by rate limiting.
      */
     fun update(tick: Int, now: Long, settings: HolderStates.Settings): Boolean =
-        dispatcher.traceHolderRefresh { updateState(tick, now, settings) }
+        performanceScope({ "libreforge:framework" }, { "holders:update" }) {
+            dispatcher.traceHolderRefresh { updateState(tick, now, settings) }
+        }
 
     private fun updateState(tick: Int, now: Long, settings: HolderStates.Settings): Boolean {
         if (resetPending) {

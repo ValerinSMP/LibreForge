@@ -1,5 +1,7 @@
 package com.willfp.libreforge
 
+import com.willfp.libreforge.diagnostics.performanceScope
+
 import com.willfp.eco.core.items.Items
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
@@ -10,13 +12,15 @@ import org.bukkit.event.player.PlayerItemDamageEvent
 import org.bukkit.inventory.meta.Damageable
 
 val org.bukkit.inventory.ItemStack?.isBrokenItem: Boolean
-    get() {
+    get() = performanceScope({ "libreforge:items" }, { "items:broken-check" }) {
+        isBrokenItemMeasured()
+    }
+
+private fun org.bukkit.inventory.ItemStack?.isBrokenItemMeasured(): Boolean {
         if (this == null) return false
-        if (!Items.isCustomItem(this)) return false
         val meta = this.itemMeta as? Damageable ?: return false
         val maxDurability = if (meta.hasMaxDamage()) meta.maxDamage else this.type.maxDurability.toInt()
-        if (maxDurability <= 0) return false
-        return meta.hasDamage() && meta.damage >= maxDurability - 1
+        return nonDestructiveBrokenItem(maxDurability, { meta.hasDamage() }, { meta.damage }, { Items.isCustomItem(this) })
     }
 
 object NonDestructiveBreakageListener : Listener {
@@ -46,4 +50,12 @@ object NonDestructiveBreakageListener : Listener {
             }
         }
     }
+}
+
+/** Keep physical eligibility ahead of the expensive registry lookup; no mutable-item cache. */
+internal inline fun nonDestructiveBrokenItem(
+    maxDurability: Int, hasDamage: () -> Boolean, damage: () -> Int, isCustom: () -> Boolean
+): Boolean {
+    if (maxDurability <= 0 || !hasDamage() || damage() < maxDurability - 1) return false
+    return isCustom()
 }

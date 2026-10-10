@@ -1,5 +1,7 @@
 package com.willfp.libreforge
 
+import com.willfp.libreforge.diagnostics.performanceScope
+
 import com.willfp.eco.core.Eco
 import com.willfp.eco.core.EcoPlugin
 import com.willfp.eco.core.Prerequisite
@@ -144,6 +146,7 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
     }
 
     override fun handleReload() {
+        com.willfp.libreforge.diagnostics.PerformanceMonitor.shutdown()
         HolderStates.reloadSettings()
 
         for (config in chainsYml.getSubsections("chains")) {
@@ -198,6 +201,7 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
     }
 
     override fun handleDisable() {
+        com.willfp.libreforge.diagnostics.PerformanceMonitor.shutdown()
         // Fallback, if nothing earlier in the disable ran the shutdown sweep.
         HolderStates.shutdownSweep()
     }

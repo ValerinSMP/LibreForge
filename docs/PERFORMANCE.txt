@@ -1,0 +1,28 @@
+LibreForge performance monitor — Test delivery 2026-10-09
+
+Reference workload: 60–100 online players, 30–40 actively fighting or playing.
+Synthetic unit tests do not validate Minecraft performance at this workload.
+
+Usage after the owner restarts Test:
+/libreforge performance start 120
+/libreforge performance status
+/libreforge performance report cpu
+/libreforge performance report wall
+/libreforge performance stop
+
+Recording lasts 60–180 seconds, default 120. CPU is available only if the JVM already enables thread CPU measurement. Otherwise it is reported unavailable. Reports distinguish instrumented own cost from inclusive cost; percentile values are histogram upper bounds. Labels have a 4096-key limit with a separate overflow bucket. Export is asynchronous into LibreForge's diagnostics directory as TSV.
+
+Coverage: shared holder refresh/provider/update, trigger dispatch, effect pipeline including delayed repeats, AOE selection and targets, broken-item checks. This is not full-server measurement: independent plugin timers, EcoEnchants repairing timer, GC and JIT require complementary Spark profiling. No damage, balance or cooldown modifications.
+
+Conservative optimization: skip custom-item identification for physically ineligible broken-item checks; preserve original eligibility and callbacks.
+
+Modified canonical source: personal /root/development/projects/eco-suite/LibreForge.
+Compiled on personal with bounded executor and original Java 21 target/toolchain; 130 tests passed, none failed or skipped.
+Installed only on Test, SHA256 a027c502bdde95075e0075c9ed8e25c44b68c7cf502d71a539f594ed0f356e2a.
+Custom and Sync: 14 EcoSuite JAR hashes checked unchanged.
+No restart or reload executed. Active state and gameplay verification pending owner restart and representative capture.
+Backups: /mnt/storage/backups/ai/survival-custom/libreforge-performance/.
+
+Production delivery 2026-10-09 Chile: same candidate installed on Custom and Sync by explicit owner request. Installed SHA256 a027c502bdde95075e0075c9ed8e25c44b68c7cf502d71a539f594ed0f356e2a. Verified originals backed up on secondary disk under production-20261010T020734Z. Other 111 Custom and 98 Sync plugin JARs unchanged. Owner/mode preserved. No restart/reload; activation and gameplay verification remain pending. Detailed evidence: staging/survival-custom/libreforge-performance/production-installation.json.
+
+Live verification 2026-10-10: owner restarted Custom/Sync on Leaf26.2. Native monitor successfully completed180s alongside Spark on both nodes, CPU available, TSV exported, zero overflow/depth-drop/inflight or instrumented failures. Observed population Custom56–58 and Sync11–13; not a representative100-player/40-active-PvP validation. Earlier delivery notes describe their dated pre-activation state. Full workspace test suite at delivery passed130 tests; unrelated XP work in that workspace is excluded from this publication. Homing gameplay validation remains separate from monitor verification.
