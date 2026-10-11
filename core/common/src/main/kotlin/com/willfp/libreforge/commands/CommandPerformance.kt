@@ -24,6 +24,7 @@ internal object CommandPerformance : Subcommand(plugin, "performance", "librefor
                 message("stopped", "Capture stopped. Report will be exported; use /libreforge performance report.")
             else message("inactive", "No performance capture is running."))
             "status" -> {
+                sender.sendMessage(com.willfp.libreforge.effects.templates.MiningBatches.status())
                 val active = PerformanceMonitor.recorder.session
                 sender.sendMessage(if (active == null) message("inactive", "No performance capture is running.") else
                     message("status", "Capture %id%: %seconds%s elapsed; CPU available: %cpu%.")
@@ -31,6 +32,7 @@ internal object CommandPerformance : Subcommand(plugin, "performance", "librefor
                         .replace("%cpu%", active.cpuSupported.toString()))
             }
             "report" -> {
+                sender.sendMessage(com.willfp.libreforge.effects.templates.MiningBatches.status())
                 val snapshot = PerformanceMonitor.last ?: PerformanceMonitor.recorder.session?.snapshot()
                 if (snapshot == null) { sender.sendMessage(message("no-report", "No performance report available.")); return }
                 val metric = args.getOrNull(1)?.lowercase() ?: if (snapshot.cpuSupported) "cpu" else "wall"

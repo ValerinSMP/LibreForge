@@ -1,0 +1,71 @@
+LibreForge: opt-in extra-block batching (2026-10-10)
+
+Canonical source: personal /root/development/projects/eco-suite/LibreForge.
+Increment: mine_radius, drill, mine_vein; mining selection remains synchronous.
+No changes to damage, EcoEnchants replenish, ConditionalEvents, ExcellentJobs,
+other Eco repositories, NMS, toolchains, or native effect/argument syntax.
+
+effects.mining-batches.enabled: false in packaged defaults; true in Test delivery.
+effects.max-blocks-per-tick: 24 globally, not per player (clamped 1..256).
+Test keeps its pre-existing value 12; only mining-batches settings are added.
+effects.mining-batches.budget-ms: 4, cooperative wall budget (1..10).
+effects.mining-batches.max-queued-blocks: 8192 (24..16384).
+effects.mining-batches.max-queued-blocks-per-player: 256 (8..1024).
+effects.mining-batches.max-age-ticks: 40 (1..200), approximately 2s at 20 TPS.
+Native config reload clears work; disable clears work. No agent lifecycle.
+
+Original player block remains immediate. Normal extra blocks take one turn per
+player, with FIFO jobs per player. A single global ticker enforces both limits.
+Admission is all-or-none; full queues reject extra mining, never burst immediately.
+Warnings are bounded, one per player and global log every 100 ticks.
+Counters live in /libreforge performance status and report; they are cumulative
+since plugin initialization, including across reloads. Pending is a current gauge.
+The existing optional capture records queue tick/break time and acceptance,
+discard reason, skipped blocks and normal break attempts/success.
+
+No Bukkit state is accessed async. Pending work keeps coordinates/block data,
+holder id, immutable tool clone (ignoring durability only), primitives and weak
+player reference; no TriggerData/event is retained across ticks. Source block
+events are tracked from LOWEST to MONITOR in that same event; unresolved/cancelled
+sources fail closed. Native delayed/repeated effects can submit after their source
+event finished; its current cancellation flag is read without retaining the event.
+Normal player break/place invalidates queued coordinates even when
+the replacement has identical block data. Other programmatic replacement without
+events cannot be distinguished if its final block data is identical.
+
+Before EACH extra block: same online session/world/hotbar/tool (amount/meta), tool
+not broken, original anchor within native reach, originating holder still active.
+Current chunk must already be loaded, block data unchanged and current antigrief
+permission granted. Quit/death/world/held-slot/swap, inventory click/drag, item drop
+and gamemode change cancels remaining jobs.
+Changed tool metadata cancels conservatively, including external progress/display
+changes; confirm compatibility with actual EcoItems/Nexo tools in Test.
+
+Normal Player.breakBlock is preserved: protections, drops, XP, durability and
+third-party callbacks run at execution time. Metadata and anticheat exemption
+only wrap the individual attempt and are cleaned in finally. Exceptions cancel
+that job and are logged with a bounded stack trace; other players continue.
+
+Functional timing contract: effect returns true when its job is accepted, rather
+than when all extra blocks have completed. Original argument costs, conditions,
+filters, cooldowns and ifMet execute once at original acceptance, NOT per block.
+If later guards fail/age expires, remaining extra blocks are discarded; previously
+accepted costs/callbacks are not refunded or replayed. Users must validate this
+timing and balance change before any production delivery.
+
+Legacy two-argument protected breakBlocksSafely signature remains unchanged.
+Other mining effects remain immediate. Explicit prevent_trigger, use-setblock-break
+and empty/non-holder dispatches also preserve their legacy immediate behavior.
+Thus this is not a universal limiter for every operation or plugin.
+
+Budget does NOT interrupt an event already running. A single third-party callback
+may exceed 4ms; total work can increase due to deferred validation. This aims to
+spread spikes, not promise reduced total CPU or any improvement percentage.
+60-100 online/30-40 active capacity requires real load measurements, not unit
+tests. Queue settings are Test starting values, not certified production sizing.
+
+Test acceptance: TikTok 3x3, Dynamite levels, Enderita vein, original normal block,
+normal XP/drops/telekinesis/fortune, WorldGuard deny, switch/break/replace tool,
+quit/rejoin/world change, block replacement, full/expired queues, cooldown/cost
+and ifMet timing; multi-player turns. Compare same scenario using Spark 180s
+and /libreforge performance start 180; check queue status and discarded/rejected.

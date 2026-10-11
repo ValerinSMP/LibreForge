@@ -1,0 +1,27 @@
+LibreForge — minería múltiple y cultivos — 2026-10-10
+Fuente canónica: personal:/root/development/projects/eco-suite/LibreForge, base 3a4c7892.
+Modificado y compilado en personal con ejecutor limitado. JDK/toolchain/bytecode nativos conservados.
+Pruebas: 139; fallos/errores/omitidas: 0. Coordenadas comparadas contra Location.clone().add(), posiciones negativas/fraccionarias, orden de cubos/capas y taladro; origen sin mutación.
+Firmas JVM públicas/protegidas conservadas. Otros archivos del JAR idénticos a la entrega previa de Test.
+JAR SHA256: 0ea497cbbd84d7c7239162727125d57b5ec4bfe205606fdb6d6407e9486ce36c
+Instalado SOLO Test, con propietario/permisos conservados y reemplazo atómico.
+Backup JAR HDD: /mnt/storage/backups/ai/survival-custom/libreforge-performance/Test-before-multiblock.jar
+Backup fuentes HDD: /mnt/storage/backups/ai/survival-custom/libreforge-performance/multiblock-before.tar
+Sin restart/reload. Nueva versión pendiente de activación por el usuario y verificación en juego.
+Custom/Sync conservan a027c502bdde95075e0075c9ed8e25c44b68c7cf502d71a539f594ed0f356e2a.
+Sin commit/push de esta entrega pendiente de aceptación en juego. Modificaciones ajenas preservadas.
+
+Optimización: reutilizar una ubicación de origen y calcular coordenadas enteras con el mismo piso de Bukkit, evitando ubicaciones/clones por candidato y vectores temporales del taladro. Conserva orden de candidatos, filtros y llamadas de protección/eventos. No fusiona pasadas ni cambia límites/radios/drops/XP/semillas/temporización/cancelaciones.
+Monitor: candidatos/selección/protecciones para radio; protección taladro; búsqueda/protecciones/filtros de vetas; rotura por eventos e intentos/resultados; drops de cosecha; handler, protección, semillas y siguiente tick de replantar, incluyendo BlockPlaceEvent. Coste de rotura genérico agregado bajo libreforge:blocks; efectos exteriores mantienen atribución al holder. Replantar usa etiqueta global: no atribuye automáticamente al objeto específico.
+Medición por tiempo de pared y CPU del hilo cuando disponible, propia e inclusiva; las fases anidadas no se suman como independientes. Límites actuales 4096 claves, 128 contadores y profundidad 64; comprobar overflow. Durante medición hay sobrecosto; el monitor no aporta medición global de CPU/GC/JIT ni todos los temporizadores independientes.
+
+Evidencia previa: Custom GpvTWd9cdI, Sync eBTM4oK4dC, captura 180s. En Custom pico_tiktok ejecutó mine_radius 229 veces: 75.8285 ms CPU acumulada y máximo de pared 7.4204 ms en esa fase. No prueba que Dynamite o replantar hayan sido responsables de aquellos picos; faltaba medir sus ramas diferidas.
+Configuración actual contrastada en ambos nodos: pico_tiktok/pico_completo radius=1 depth=1 => ocho adicionales (nueve con el original); warderite_pickaxe radius=1 sin depth => 26 adicionales (27 con original). Dynamite toma el radio del nivel; sus YAML vivos prevalecen sobre defaults upstream. No se modificó ningún YAML.
+Referencia de capacidad: 60–100 conectados, 30–40 activos. Esta entrega no demuestra capacidad ni una reducción porcentual de lag; requiere prueba comparable y captura de actividad real.
+
+Prueba en Test después del reinicio del usuario:
+/libreforge performance start 180
+/spark profiler start --timeout 180
+Usar Dynamite, herramientas por capas/cubos, taladro/vetas y cosecha/replantación. Comprobar áreas protegidas, drops, XP y consumo de semillas.
+Reportes: /libreforge performance report cpu ; /libreforge performance report wall
+Comparar actividad equivalente antes/después; luego repetir captura bajo carga real autorizada. No instalar producción ni cambiar balance por inferencia.

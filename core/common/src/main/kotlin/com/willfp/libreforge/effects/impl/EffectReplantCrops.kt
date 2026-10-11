@@ -1,5 +1,8 @@
 package com.willfp.libreforge.effects.impl
 
+import com.willfp.libreforge.diagnostics.performanceScope
+import com.willfp.libreforge.diagnostics.performanceCount
+
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.eco.core.integrations.antigrief.AntigriefManager
 import com.willfp.eco.core.map.listMap
@@ -64,7 +67,11 @@ object EffectReplantCrops : Effect<NoCompileData>("replant_crops") {
     @EventHandler(
         ignoreCancelled = true
     )
-    fun handle(event: BlockBreakEvent) {
+    fun handle(event: BlockBreakEvent) = performanceScope(
+        { "libreforge:replant_crops" }, { "crops:replant:handler" }
+    ) { handleMeasured(event) }
+
+    private fun handleMeasured(event: BlockBreakEvent) {
         val player = event.player
 
         if (players[player.uniqueId].isEmpty()) {
@@ -74,7 +81,7 @@ object EffectReplantCrops : Effect<NoCompileData>("replant_crops") {
         val block = event.block
         val type = block.type
 
-        if (!AntigriefManager.canPlaceBlock(player, block)) {
+        if (!performanceScope({ "libreforge:replant_crops" }, { "crops:replant:protection" }) { AntigriefManager.canPlaceBlock(player, block) }) {
             return
         }
 
@@ -116,7 +123,7 @@ object EffectReplantCrops : Effect<NoCompileData>("replant_crops") {
                 }
             )
 
-            val hasSeeds = player.inventory.removeItem(item).isEmpty()
+            val hasSeeds = performanceScope({ "libreforge:replant_crops" }, { "crops:replant:seeds" }) { player.inventory.removeItem(item).isEmpty() }
 
             if (!hasSeeds) {
                 return
@@ -134,12 +141,14 @@ object EffectReplantCrops : Effect<NoCompileData>("replant_crops") {
 
         data.age = 0
 
+        performanceCount({ "crops:replant:scheduled" })
         plugin.scheduler.run {
+            performanceScope({ "libreforge:replant_crops" }, { "crops:replant:deferred" }) {
             block.type = type
             block.blockData = data
 
             // Improves compatibility with other plugins.
-            Bukkit.getPluginManager().callEvent(
+            performanceScope({ "libreforge:replant_crops" }, { "crops:replant:place-event" }) { Bukkit.getPluginManager().callEvent(
                 BlockPlaceEvent(
                     block,
                     block.state,
@@ -149,7 +158,8 @@ object EffectReplantCrops : Effect<NoCompileData>("replant_crops") {
                     true,
                     EquipmentSlot.HAND
                 )
-            )
+            ) }
+            }
         }
     }
 

@@ -1,0 +1,10 @@
+LibreForge scan allocation optimization — 2026-10-10
+Canonical source: personal /root/development/projects/eco-suite/LibreForge.
+Own files: ItemHolderFinder.kt, slot/ItemHolderRescanTest.kt.
+Change: avoid filtering allocation for empty recognition; reuse unchanged scan bookkeeping only when holder identity/order and material types match. Queries, validation, callback order and multiplicity preserved. No damage/attributes/cooldowns changes.
+Consumers: EcoItems and EcoEnchants ItemHolderFinder providers; public JVM signatures unchanged.
+135 workspace tests passed after correcting a test fixture that initially loaded an unavailable eco cache dependency; 5 new regression tests execute actual rescan through reflection with mocked input reads.
+Binary comparison: only4 ItemHolderFinder family classes changed, all other entries identical to baseline a027c502....
+Installed Test SHA256 e27880d70200fb23049d0eb122589023c44b0d5c807e40a7843e0820542013f7. Backed up on secondary disk; Custom/Sync unchanged. No lifecycle.
+Active and gameplay verification pending owner restart of Test. No measured Minecraft performance gain yet; reference60–100online/30–40active not validated.
+Unrelated XP changes and STATE.md preserved. Own optimization not committed/pushed pending gameplay acceptance.

@@ -1,5 +1,9 @@
 package com.willfp.libreforge.effects.impl
 
+import com.willfp.libreforge.diagnostics.performanceScope
+import com.willfp.libreforge.diagnostics.performanceCount
+import com.willfp.libreforge.effects.templates.miningOffsetBlock
+
 import com.willfp.eco.core.blocks.Blocks
 import com.willfp.eco.core.blocks.matches
 import com.willfp.eco.core.config.interfaces.Config
@@ -89,9 +93,10 @@ object EffectDrill : MineBlockEffect<NoCompileData>("drill") {
 
         val forwardAxis = resolveForwardAxis(config, player, block)
 
+        val origin = block.location
+        val world = block.world
         for (i in 1..amount) {
-            val offset = forwardAxis.clone().multiply(i)
-            val toBreak = block.world.getBlockAt(block.location.clone().add(offset))
+            val toBreak = miningOffsetBlock(world, origin, forwardAxis.x * i, forwardAxis.y * i, forwardAxis.z * i)
 
             if (blacklist.matches(toBreak)) {
                 continue
@@ -109,7 +114,7 @@ object EffectDrill : MineBlockEffect<NoCompileData>("drill") {
                 }
             }
 
-            if (!AntigriefManager.canBreakBlock(player, toBreak)) {
+            if (!performanceScope({ data.holder.holder.id.toString() }, { "blocks:drill:protection" }) { AntigriefManager.canBreakBlock(player, toBreak) }) {
                 continue
             }
 
@@ -120,8 +125,7 @@ object EffectDrill : MineBlockEffect<NoCompileData>("drill") {
             blocks.add(toBreak)
         }
 
-        player.breakBlocksSafely(blocks, preventTriggers)
-
-        return true
+        performanceCount({ "blocks:drill:selected:${data.holder.holder.id}" }, blocks.size.toLong())
+        return player.breakBlocksSafely(blocks, preventTriggers, data)
     }
 }

@@ -1,5 +1,9 @@
 package com.willfp.libreforge.effects.impl
 
+import com.willfp.libreforge.diagnostics.performanceScope
+import com.willfp.libreforge.diagnostics.performanceCount
+import com.willfp.libreforge.effects.templates.miningOffsetBlock
+
 import com.willfp.eco.core.blocks.Blocks
 import com.willfp.eco.core.blocks.matches
 import com.willfp.eco.core.config.interfaces.Config
@@ -106,14 +110,16 @@ object EffectMineRadius : MineBlockEffect<NoCompileData>("mine_radius") {
 
         val noCorners = config.getBool("no_corners")
 
-        val candidates = if (config.has("depth")) {
+        val candidates = performanceScope({ data.holder.holder.id.toString() }, { "blocks:radius:candidates" }) { if (config.has("depth")) {
             val depth = config.getIntFromExpression("depth", data).coerceAtLeast(1)
             layeredCandidates(config, player, block, radius, depth, noCorners)
         } else {
             cubeCandidates(block, radius, noCorners)
-        }
+        } }
+        performanceCount({ "blocks:radius:candidates:${data.holder.holder.id}" }, candidates.size.toLong())
 
-        val blocks = mutableSetOf<Block>()
+        val blocks = performanceScope({ data.holder.holder.id.toString() }, { "blocks:radius:selection" }) {
+        val selected = mutableSetOf<Block>()
 
         for (toBreak in candidates) {
             if (toBreak.location.blockY !in block.world.minHeight..block.world.maxHeight) {
@@ -144,16 +150,17 @@ object EffectMineRadius : MineBlockEffect<NoCompileData>("mine_radius") {
                 continue
             }
 
-            if (!AntigriefManager.canBreakBlock(player, toBreak)) {
+            if (!performanceScope({ data.holder.holder.id.toString() }, { "blocks:radius:protection" }) { AntigriefManager.canBreakBlock(player, toBreak) }) {
                 continue
             }
 
-            blocks.add(toBreak)
+            selected.add(toBreak)
         }
+        selected
+        }
+        performanceCount({ "blocks:radius:selected:${data.holder.holder.id}" }, blocks.size.toLong())
 
-        player.breakBlocksSafely(blocks, preventTriggers)
-
-        return true
+        return player.breakBlocksSafely(blocks, preventTriggers, data)
     }
 
     /**
@@ -165,6 +172,8 @@ object EffectMineRadius : MineBlockEffect<NoCompileData>("mine_radius") {
         noCorners: Boolean
     ): List<Block> {
         val candidates = mutableListOf<Block>()
+        val origin = block.location
+        val world = block.world
 
         for (x in (-radius..radius)) {
             for (y in (-radius..radius)) {
@@ -177,9 +186,7 @@ object EffectMineRadius : MineBlockEffect<NoCompileData>("mine_radius") {
                         continue
                     }
 
-                    candidates += block.world.getBlockAt(
-                        block.location.clone().add(x.toDouble(), y.toDouble(), z.toDouble())
-                    )
+                    candidates += miningOffsetBlock(world, origin, x.toDouble(), y.toDouble(), z.toDouble())
                 }
             }
         }
@@ -201,6 +208,8 @@ object EffectMineRadius : MineBlockEffect<NoCompileData>("mine_radius") {
     ): List<Block> {
         val axes = resolveMiningAxes(config, player, block)
         val candidates = mutableListOf<Block>()
+        val origin = block.location
+        val world = block.world
 
         for (layer in 0 until depth) {
             for (up in (-radius..radius)) {
@@ -213,12 +222,10 @@ object EffectMineRadius : MineBlockEffect<NoCompileData>("mine_radius") {
                         continue
                     }
 
-                    candidates += block.world.getBlockAt(
-                        block.location.clone().add(
-                            axes.right.x * right + axes.up.x * up + axes.forward.x * layer,
-                            axes.right.y * right + axes.up.y * up + axes.forward.y * layer,
-                            axes.right.z * right + axes.up.z * up + axes.forward.z * layer
-                        )
+                    candidates += miningOffsetBlock(world, origin,
+                        axes.right.x * right + axes.up.x * up + axes.forward.x * layer,
+                        axes.right.y * right + axes.up.y * up + axes.forward.y * layer,
+                        axes.right.z * right + axes.up.z * up + axes.forward.z * layer
                     )
                 }
             }

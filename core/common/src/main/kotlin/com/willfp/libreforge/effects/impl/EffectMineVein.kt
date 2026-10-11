@@ -1,5 +1,8 @@
 package com.willfp.libreforge.effects.impl
 
+import com.willfp.libreforge.diagnostics.performanceScope
+import com.willfp.libreforge.diagnostics.performanceCount
+
 import com.willfp.eco.core.blocks.Blocks
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.eco.core.integrations.antigrief.AntigriefManager
@@ -67,17 +70,21 @@ object EffectMineVein : MineBlockEffect<FilterList>("mine_vein") {
         val whitelist = config.getStringsOrNull("blocks")
             ?.mapNotNull { Blocks.lookup(it) } ?: listOf(Blocks.getBlock(block))
 
-        val blocks = BlockUtils.getVein(
+        val found = performanceScope({ data.holder.holder.id.toString() }, { "blocks:vein:candidates" }) { BlockUtils.getVein(
             block,
             whitelist,
             limit
-        )
-            .filter { AntigriefManager.canBreakBlock(player, it) }
-            .filter { compileData.isMet(data.copy(block = it)) }
+        ) }
+        performanceCount({ "blocks:vein:candidates:${data.holder.holder.id}" }, found.size.toLong())
+        val protected = performanceScope({ data.holder.holder.id.toString() }, { "blocks:vein:protection" }) {
+            found.filter { AntigriefManager.canBreakBlock(player, it) }
+        }
+        val blocks = performanceScope({ data.holder.holder.id.toString() }, { "blocks:vein:filters" }) {
+            protected.filter { compileData.isMet(data.copy(block = it)) }
+        }
+        performanceCount({ "blocks:vein:selected:${data.holder.holder.id}" }, blocks.size.toLong())
 
-        player.breakBlocksSafely(blocks, preventTriggers)
-
-        return true
+        return player.breakBlocksSafely(blocks, preventTriggers, data)
     }
 
     override fun makeCompileData(config: Config, context: ViolationContext): FilterList {

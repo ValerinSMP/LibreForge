@@ -1,0 +1,51 @@
+LibreForge — extra-block batching, Test delivery 2026-10-10
+
+Canonical: personal /root/development/projects/eco-suite/LibreForge, HEAD 3a4c7892.
+HomeSV reference source unchanged. STATE.md, BoundCounter/ContextualAccumulator and
+foreign handoffs preserved; existing monitor/mining/holder changes included unchanged.
+
+Modified: FairMiningQueue/MiningBatches + additive MineBlockEffect overload; only
+mine_radius/drill/mine_vein submit extra blocks. Native plugin tasks/listeners and
+performance status/report hooked; opt-in packaged YAML defaults disabled.
+Detailed contract and cancellation/cost/compatibility limits: MINING-BATCHES.txt.
+
+Built: personal bounded executor 2 CPU/4 GiB/zero swap/one worker; native Gradle,
+Kotlin 2.2.21, JDK25 launcher/toolchain21/JVM21. New class major 65.
+Tested: 153 JVM tests, 14 new queue tests; zero failures/errors/skips.
+40 active-owner fairness and 100 identities admission are functional tests, not
+60–100 online capacity or Minecraft validation. Existing public/protected signatures
+preserved; binary diff limited to listed mining/plugin/command classes and config.yml.
+
+Installed: Test only, libreforge-2026.27.jar SHA256
+93d6f80508f0039d2575bc65c73b15bbbd959516935df68f2bc1f39e21be387f
+Test YAML: only mining-batches subsection added, enabled=true; existing global cap12
+preserved, budget4ms, queued8192 total/256 per player, maximum age40 ticks.
+Config SHA256: 27f8ee53a84d659ea846572cdf6c90ee5ae0852d2033e103129e2a6d07b9cc75
+Custom/Sync JAR and YAML hashes unchanged (installation.json).
+
+Backup verified on secondary disk:
+/mnt/storage/backups/ai/survival-custom/libreforge-performance/mining-batches-20261010
+Test-before.jar / Test-before.yml + source-before.tar / installation.json.
+Rollback: restore BOTH Test-before files to their original Test JAR/config paths,
+preserve destination owner/mode and verify the before hashes in installation.json.
+Any activation/restart belongs to the owner; no lifecycle executed by the agent.
+
+Test gameplay: accepted by the owner on 2026-10-11, including the requested functional
+cases. CPU/spike improvement: not measured. Production delivery recorded below.
+Next: owner Test restart, verify /libreforge performance status enabled=true, then
+same TikTok/Dynamite/Enderita scenario with Spark180s and native performance180s.
+Check drops/XP/protections/tool swaps and discarded/rejected counts before tuning.
+Replant measurement and further allocation savings remain separate increments.
+
+Production delivery 2026-10-11
+- Installed accepted Test artifact on Custom and Sync; SHA256 matches above.
+- Only mining-batches subsection added to each live YAML; other parsed YAML values
+  and their existing global caps preserved (Custom12, Sync24), same budget4ms.
+- Backup: /mnt/storage/backups/ai/survival-custom/libreforge-performance/mining-batches-production-20261011T175935Z.
+- Backups: Custom-before.jar/yml and Sync-before.jar/yml. planned.json and
+  installation.json store exact before/after hashes and changes. Rollback restores
+  the paired JAR and YAML of the corresponding node, preserving owner/mode.
+- Test JAR/YAML unchanged; no build, source sync, restart or reload performed.
+- Installed/hash/ownership/permissions verified. Production active/gameplay:
+  pending owner's restart and real-load capture. No quantified CPU improvement.
+- The player's attack-indicator ticket remains separate and unresolved.

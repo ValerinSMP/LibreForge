@@ -1,5 +1,8 @@
 package com.willfp.libreforge.effects.impl
 
+import com.willfp.libreforge.diagnostics.performanceScope
+import com.willfp.libreforge.diagnostics.performanceCount
+
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.libreforge.ArgType
 import com.willfp.libreforge.NoCompileData
@@ -33,12 +36,17 @@ object EffectHarvestCrop : Effect<NoCompileData>("harvest_crop") {
 
         if (config.getBool("only_fully_grown") && blockData.age != blockData.maximumAge) return false
 
-        block.drops.forEach { drop -> block.world.dropItemNaturally(block.location, drop) }
+        performanceScope({ data.holder.holder.id.toString() }, { "crops:harvest:drops" }) {
+            block.drops.forEach { drop -> block.world.dropItemNaturally(block.location, drop) }
+        }
+        performanceCount({ "crops:harvest:scheduled" })
 
         plugin.scheduler.run {
+            performanceScope({ data.holder.holder.id.toString() }, { "crops:harvest:deferred" }) {
             blockData.age = 0
             block.type = block.type
             block.blockData = blockData
+            }
         }
 
         return true

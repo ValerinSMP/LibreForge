@@ -62,7 +62,7 @@ internal object PerformanceMonitor {
         appendLine("# own excludes nested instrumented scopes on the same thread; inclusive rows overlap")
         appendLine("# wall minus CPU is off-CPU time, not exact I/O wait; CPU missing/partial is N/A")
         appendLine("# percentiles are power-of-two histogram upper bounds in nanoseconds, not exact percentiles")
-        appendLine("# coverage: holder state updates, flush/provider/refresh phases, trigger dispatch, effect pipeline and its delayed repeats, AOE selection/targets, item broken check")
+        appendLine("# coverage: holder state updates, flush/provider/refresh phases, trigger dispatch, effect pipeline and its delayed repeats, AOE selection/targets, item broken check, multiblock candidates/protection/break events, crop harvest/replant deferred callbacks")
         appendLine("# excludes: other plugins' independent timers, JVM GC/JIT workers, independent permanent-effect timers and EcoEnchants Repairing timer; use spark alongside this report")
         appendLine("# counters=" + snapshot.counters.entries.joinToString(",") { "${clean(it.key)}=${it.value}" })
         appendLine("origin\toperation\tcalls\tfailures\twall_ms\town_wall_ms\tcpu_ms\town_cpu_ms\tcpu_calls\tmax_ms\tp50_upper_ms\tp95_upper_ms\tp99_upper_ms")

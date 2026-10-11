@@ -95,7 +95,8 @@ abstract class ItemHolderFinder<T : Holder> {
             } else if (reusable != null && reusable.types[index] == type && scopes!!.none { it.matches(slot, type) }) {
                 reusable.holders[index]
             } else {
-                this.find(read.items[index]).filter { holder -> isValidInSlot(holder, slot) }
+                val found = this.find(read.items[index])
+                if (found.isEmpty()) emptyList() else found.filter { holder -> isValidInSlot(holder, slot) }
             }
 
             if (isSame && !isSameHolders(previous!!.holders[index], holders[index])) {
@@ -111,6 +112,12 @@ abstract class ItemHolderFinder<T : Holder> {
                 found.mapTo(list) { holder -> SlotItemProvidedHolder(holder, read.items[index], slot) }
             }
             list
+        }
+
+        // Recognition and validation above still run even if the result did not change.
+        // Reuse the bookkeeping only when both holder identities and material types match.
+        if (isSame && previous != null && previous.types.contentEquals(read.types)) {
+            return previous
         }
 
         return SlotScan(read.types.copyOf(), holders, provided)

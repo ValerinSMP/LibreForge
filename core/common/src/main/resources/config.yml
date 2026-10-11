@@ -113,6 +113,16 @@ effects:
   # creating a single-tick spike while preserving normal block-break events.
   max-blocks-per-tick: 24
 
+  # Opt-in extra-block batching for mine_radius, drill and mine_vein only.
+  # Original blocks remain immediate. Normal events/drops/XP are preserved.
+  # Budget is cooperative: one block event can exceed it. Selection stays immediate.
+  mining-batches:
+    enabled: false
+    budget-ms: 4
+    max-queued-blocks: 8192
+    max-queued-blocks-per-player: 256
+    max-age-ticks: 40
+
   multiply_drops:
     # Some items can be duplicated if they are placed on other blocks, e.g. torches, lanterns, etc.
     # This option will prevent this from happening by blacklisting certain blocks from being multiplied.

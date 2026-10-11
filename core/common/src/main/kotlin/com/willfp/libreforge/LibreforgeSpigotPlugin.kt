@@ -146,6 +146,7 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
     }
 
     override fun handleReload() {
+        com.willfp.libreforge.effects.templates.MiningBatches.reload()
         com.willfp.libreforge.diagnostics.PerformanceMonitor.shutdown()
         HolderStates.reloadSettings()
 
@@ -198,9 +199,11 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
 
         // Applies everything marked on holder states, at the start of every tick.
         HolderStates.start()
+        com.willfp.libreforge.effects.templates.MiningBatches.start()
     }
 
     override fun handleDisable() {
+        com.willfp.libreforge.effects.templates.MiningBatches.shutdown()
         com.willfp.libreforge.diagnostics.PerformanceMonitor.shutdown()
         // Fallback, if nothing earlier in the disable ran the shutdown sweep.
         HolderStates.shutdownSweep()
@@ -211,7 +214,8 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
             ActiveAbilityPvpListener,
             EffectDataFixer,
             ItemRefreshListener,
-            NonDestructiveBreakageListener
+            NonDestructiveBreakageListener,
+            com.willfp.libreforge.effects.templates.MiningBatches
         )
 
         listeners += HolderLifecycle.listeners()

@@ -1,5 +1,8 @@
 package com.willfp.libreforge.effects.templates
 
+import com.willfp.libreforge.diagnostics.performanceScope
+import com.willfp.libreforge.diagnostics.performanceCount
+
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.eco.util.runExempted
 import com.willfp.eco.util.simplify
@@ -82,7 +85,18 @@ abstract class MineBlockEffect<T : Any>(id: String) : Effect<T>(id) {
         }
     }
 
-    protected fun Player.breakBlocksSafely(blocks: Collection<Block>, preventTriggers: Boolean = false) {
+    protected fun Player.breakBlocksSafely(blocks: Collection<Block>, preventTriggers: Boolean = false) =
+        performanceScope({ "libreforge:blocks" }, { "blocks:break" }) { breakBlocksMeasured(blocks, preventTriggers) }
+
+    // Additive overload: legacy consumers keep the immediate two-argument helper.
+    protected fun Player.breakBlocksSafely(blocks: Collection<Block>, preventTriggers: Boolean, data: TriggerData): Boolean {
+        MiningBatches.submit(this, blocks, preventTriggers, data)?.let { return it }
+        breakBlocksSafely(blocks, preventTriggers)
+        return true
+    }
+
+    private fun Player.breakBlocksMeasured(blocks: Collection<Block>, preventTriggers: Boolean) {
+        performanceCount({ "blocks:break:requested" }, blocks.size.toLong())
         if (plugin.configYml.getBool("effects.use-setblock-break")) {
             blocks.forEach { it.type = Material.AIR }
         } else if (preventTriggers) {
@@ -95,7 +109,8 @@ abstract class MineBlockEffect<T : Any>(id: String) : Effect<T>(id) {
                     }
 
                     block.setMetadata(ignoreKey, plugin.createMetadataValue(true))
-                    this.breakBlock(block)
+                    performanceCount({ "blocks:break:event-attempts" })
+                    if (this.breakBlock(block)) performanceCount({ "blocks:break:event-success" })
                     block.removeMetadata(ignoreKey, plugin)
                 }
             }
