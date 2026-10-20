@@ -31,6 +31,7 @@ object EffectDamageMultiplier : Effect<NoCompileData>("damage_multiplier") {
             type = ArgType.EXPRESSION,
             example = "1.2 + %level% * 0.02"
         )
+        optional("damage_group",description="Opt-in additive offensive group; requires an explicit owning-plugin policy. Unset preserves legacy multiplication.",type=ArgType.STRING)
     }
 
     override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
@@ -39,6 +40,8 @@ object EffectDamageMultiplier : Effect<NoCompileData>("damage_multiplier") {
         }
 
         val multiplier = config.getDoubleFromExpression("multiplier", data)
+        val group = config.getStringOrNull("damage_group")
+        if (group != null) return AdditiveDamageGroups.offer(group, data, multiplier)
         val event = data.event
 
         if (Bukkit.getPluginManager().isPluginEnabled("MythicMobs") && event is MythicDamageEvent) {

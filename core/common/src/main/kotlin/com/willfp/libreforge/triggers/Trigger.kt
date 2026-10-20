@@ -79,6 +79,7 @@ abstract class Trigger(
                 plugin.eventManager.unregisterListener(this)
                 plugin.eventManager.registerListener(this)
                 postRegister()
+            com.willfp.libreforge.effects.impl.AdditiveDamageGroups.reseatBoundary()
             }
         }
     }
@@ -116,6 +117,8 @@ abstract class Trigger(
         if (DamageMultiplierBypass.isActive && !DamageMultiplierBypass.isAbilityOnly && data.event is EntityDamageEvent) {
             return
         }
+
+        if (com.willfp.libreforge.effects.impl.RepeatedDamage.skipSender(dispatcher.uuid, data)) return
 
         // Do this first to filter disabled triggers
         val dispatch = plugin.dispatchedTriggerFactory.create(dispatcher, this, data) ?: return

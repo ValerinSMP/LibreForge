@@ -266,11 +266,14 @@ abstract class Effect<T>(
     fun trigger(
         trigger: DispatchedTrigger,
         config: ChainElement<T>
-    ): Boolean = onTrigger(
-        config.config,
-        trigger.data.copy().apply { this.inheritedTriggerPlaceholders = trigger.rawPlaceholders },
-        config.compileData
-    )
+    ): Boolean {
+        if (com.willfp.libreforge.effects.impl.RepeatedDamage.skipNumeric(id, trigger.data)) return true
+        return onTrigger(
+            config.config,
+            trigger.data.copy().apply { this.inheritedTriggerPlaceholders = trigger.rawPlaceholders },
+            config.compileData
+        )
+    }
 
     /**
      * Handle triggering.
@@ -318,6 +321,7 @@ abstract class Effect<T>(
             plugin.eventManager.unregisterListener(this)
             plugin.eventManager.registerListener(this)
             postRegister()
+            com.willfp.libreforge.effects.impl.AdditiveDamageGroups.reseatBoundary()
         }
     }
 
