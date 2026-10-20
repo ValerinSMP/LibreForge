@@ -21,6 +21,8 @@ object EffectDamageVictim : Effect<DamageVictimCompileData>("damage_victim") {
     )
 
     override val arguments = arguments {
+        optional("prevent_recursive",description="Reject secondary damage and suppress repeated attacker procs.",type=ArgType.BOOLEAN,default="false")
+        optional("check_antigrief",description="Validate the source against target protections.",type=ArgType.BOOLEAN,default="false")
         require(
             "damage",
             "You must specify the amount of damage!",
@@ -53,20 +55,24 @@ object EffectDamageVictim : Effect<DamageVictimCompileData>("damage_victim") {
         DamageVictimCompileData(damageOrigin(config))
 
     override fun onTrigger(config: Config, data: TriggerData, compileData: DamageVictimCompileData): Boolean {
+        val recursiveGuard=config.getBool("prevent_recursive")
+        if(recursiveGuard&&DamageMultiplierBypass.current!=null)return false
+        if(recursiveGuard&&(data.event as? org.bukkit.event.Cancellable)?.isCancelled==true)return false
         val victim = data.victim ?: return false
         val player = data.player
         val damage = config.getDoubleFromExpression("damage", data)
         val source = if (config.getBool("use_source")) player else null
         val provenance = DamageProvenance(compileData.origin, source?.uniqueId)
 
-        return DamageMultiplierBypass.withProvenance(provenance) {
+        val apply={ DamageMultiplierBypass.withProvenance(provenance) {
             victim.dealDamage(
                 damage,
                 source = source,
                 trueDamage = config.getBool("true_damage"),
-                checkAntigrief = false
+                checkAntigrief = config.getBool("check_antigrief")
             )
             true
-        }
+        } }
+        return if(recursiveGuard&&player!=null)RepeatedDamage.run(player.uniqueId,player.uniqueId,victim.uniqueId,apply)else apply()
     }
 }

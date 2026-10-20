@@ -22,6 +22,7 @@ object EffectRapidBows : Effect<NoCompileData>("rapid_bows") {
     override val categories = setOf("combat")
 
     override val arguments = arguments {
+        optional("normalized_force",description="Interpret Paper force as its native 0..1 value.",type=ArgType.BOOLEAN,default="false")
         require(
             "percent_faster",
             "You must specify how many percent faster to make bow pulls!",
@@ -31,7 +32,8 @@ object EffectRapidBows : Effect<NoCompileData>("rapid_bows") {
         )
     }
 
-    private val modifiers = listMap<UUID, IdentifiedModifier>()
+    private data class BowModifier(val effect:IdentifiedModifier,val normalized:Boolean)
+    private val modifiers = listMap<UUID, BowModifier>()
 
     private const val MAX_FORCE = 3.0
 
@@ -42,13 +44,16 @@ object EffectRapidBows : Effect<NoCompileData>("rapid_bows") {
         holder: ProvidedHolder,
         compileData: NoCompileData
     ) {
-        modifiers[dispatcher.uuid].add(IdentifiedModifier(identifiers.uuid) {
+        modifiers[dispatcher.uuid].removeIf{it.effect.uuid==identifiers.uuid}
+        modifiers[dispatcher.uuid].add(BowModifier(IdentifiedModifier(identifiers.uuid) {
             config.getDoubleFromExpression("percent_faster", dispatcher.get())
-        })
+        },config.getBool("normalized_force")))
     }
 
     override fun onDisable(dispatcher: Dispatcher<*>, identifiers: Identifiers, holder: ProvidedHolder) {
-        modifiers[dispatcher.uuid].removeIf { it.uuid == identifiers.uuid }
+        if(dispatcher.uuid !in modifiers)return
+        modifiers[dispatcher.uuid].removeIf { it.effect.uuid == identifiers.uuid }
+        if(modifiers[dispatcher.uuid].isEmpty())modifiers.remove(dispatcher.uuid)
     }
 
     @EventHandler(
@@ -58,13 +63,17 @@ object EffectRapidBows : Effect<NoCompileData>("rapid_bows") {
     fun handle(event: EntityShootBowEvent) {
         val entity = event.entity
 
-        val totalPercentFaster = modifiers[entity.uniqueId]
-            .sumOf { it.modifier }
+        if(entity.uniqueId !in modifiers)return
+        val active=modifiers[entity.uniqueId]
+        val totalPercentFaster = active
+            .sumOf { it.effect.modifier }
             .coerceAtMost(100.0)
 
         val multiplier = 1 - totalPercentFaster / 100
 
-        val bowForce = event.force / MAX_FORCE
+        // Paper's event force is already normalized to 0..1; legacy consumers remain opt-in.
+        val bowForce = if(active.any{it.normalized})event.force.toDouble() else event.force / MAX_FORCE
+        if(!bowForce.isFinite()||bowForce<=0||!totalPercentFaster.isFinite())return
 
         if (bowForce < multiplier) {
             return

@@ -46,6 +46,9 @@ object TriggerShieldBlock : Trigger("shield_block") {
             return
         }
 
+        val blocked=blockedDamage(event)
+        if(blocked<=0)return
+
         this.dispatch(
             victim.toDispatcher(),
             TriggerData(
@@ -53,8 +56,15 @@ object TriggerShieldBlock : Trigger("shield_block") {
                 victim = attacker,
                 location = attacker.location,
                 event = event,
-                value = event.damage
+                value = blocked
             )
         )
+    }
+    /** Positive amount actually absorbed by the native shield modifier, not the whole attack. */
+    @Suppress("DEPRECATION")
+    internal fun blockedDamage(event:EntityDamageByEntityEvent):Double {
+        if(event.isCancelled||!event.isApplicable(EntityDamageEvent.DamageModifier.BLOCKING))return 0.0
+        val blocked=-event.getDamage(EntityDamageEvent.DamageModifier.BLOCKING)
+        return if(blocked.isFinite()&&blocked>0)blocked else 0.0
     }
 }

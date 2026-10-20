@@ -28,7 +28,8 @@ object TriggerKill : Trigger("kill") {
         TriggerParameter.VICTIM,
         TriggerParameter.LOCATION,
         TriggerParameter.ITEM,
-        TriggerParameter.VALUE
+        TriggerParameter.VALUE,
+        TriggerParameter.EVENT
     )
 
     @EventHandler(ignoreCancelled = true)
@@ -43,6 +44,7 @@ object TriggerKill : Trigger("kill") {
                 player = killer as? Player,
                 victim = victim,
                 location = victim.location,
+                event = event,
                 value = victim.getAttribute(Attribute.MAX_HEALTH)!!.value
             )
         )
