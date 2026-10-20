@@ -46,6 +46,10 @@ class ConditionBlock<T> internal constructor(
          */
 
         if (!Bukkit.isPrimaryThread()) {
+            @Suppress("UNCHECKED_CAST")
+            (condition as? CacheOnlyCondition<T>)?.isMetCached(dispatcher, config, holder, compileData)?.let {
+                return it xor isInverted
+            }
             return HolderStates.conditionResult(dispatcher, this)
                 ?: plugin.configYml.getBool("conditions.default-state-off-main-thread")
         }
