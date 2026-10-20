@@ -5,8 +5,9 @@ import org.bukkit.event.Event
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import java.util.UUID
 
-/** Identity of one native damage_twice replay; receiver callbacks remain enabled. */
-internal object RepeatedDamage {
+/** Scoped replay of already computed native damage; receiver callbacks remain enabled.
+ * Source/target permissions remain the caller responsibility; no damage or i-frame mutation here. */
+object RepeatedDamage {
  private data class Frame(val source:UUID,val sender:UUID,val target:UUID,var event:EntityDamageByEntityEvent?=null)
  private val frame=ThreadLocal<Frame?>()
  private val numeric=setOf("damage_multiplier","total_damage_multiplier","pvp_damage_multiplier","crit_multiplier","add_damage","make_skill_crit")
