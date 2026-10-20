@@ -63,7 +63,9 @@ abstract class AttributeEffect(
 
         // Extra check to prevent adding the same modifier twice.
         instance.removeModifier(modifier)
-        instance.addModifier(modifier)
+        // Optional for explicitly temporary native holders; legacy callers keep persistence.
+        if (config.getBoolOrNull("transient") == true) instance.addTransientModifier(modifier)
+        else instance.addModifier(modifier)
     }
 
     override fun onDisable(dispatcher: Dispatcher<*>, identifiers: Identifiers, holder: ProvidedHolder) {
