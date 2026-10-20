@@ -60,6 +60,17 @@ class EditableXpDropEvent(
     @Suppress("unused")
     val originalXp: Int = initialXp
 
+    // Lazy and scoped to this one drop event; never a player cache or a durable XP receipt.
+    private var claimedAdjustments: MutableSet<String>? = null
+
+    /** Claims one named adjustment once; existing XP fields/cancellation stay authoritative. */
+    fun claimAdjustment(id: String): Boolean {
+        if (id.length !in 1..128) return false
+        val claims = claimedAdjustments ?: mutableSetOf<String>().also { claimedAdjustments = it }
+        if (claims.size >= 256 && id !in claims) return false
+        return claims.add(id)
+    }
+
     private var cancelled = false
 
     val player: Player? get() = context.player
