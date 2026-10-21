@@ -158,6 +158,7 @@ object Triggers : Registry<Trigger>() {
         register(TriggerGroupStatic)
         register(TriggerGroupGlobalStatic)
         register(TriggerAltClick)
+        register(com.willfp.libreforge.triggers.impl.TriggerPhysicalClick)
         register(TriggerActiveAbilityShieldBlock)
         register(TriggerBite)
         register(TriggerBlockItemDrop)

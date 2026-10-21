@@ -11,7 +11,7 @@ internal class OrbitalCharges(private val now: () -> Long) {
         var spent = 0
     }
     internal data class Lease(val player: UUID, val token: UUID, val event: Any, val index: Int)
-    private data class Cooldown(val token: UUID, val until: Long)
+    private data class Cooldown(val token: UUID, val until: Long, var lastNotice: Long? = null)
     private val active = mutableMapOf<UUID, Session>()
     private val cooldowns = mutableMapOf<UUID, Cooldown>()
     fun start(player: UUID, count: Int, duration: Long, cooldown: Long): Session? {
@@ -21,6 +21,15 @@ internal class OrbitalCharges(private val now: () -> Long) {
         val session = Session(UUID.randomUUID(), now() + duration, count)
         active[player] = session; cooldowns[player] = Cooldown(session.token, now() + cooldown)
         return session
+    }
+    fun remainingMillis(player: UUID): Long { return ((cooldowns[player]?.until ?: return 0L) - now()).coerceAtLeast(0L) }
+    fun claimNotice(player: UUID, enabled: Boolean = true): Boolean {
+        if (!enabled) return false
+        val cooldown = cooldowns[player] ?: return false
+        val time = now()
+        if (time >= cooldown.until || cooldown.lastNotice?.let { time - it < 1000L } == true) return false
+        cooldown.lastNotice = time
+        return true
     }
     fun current(player: UUID) = active[player]
     fun reserve(player: UUID, event: Any): Lease? {

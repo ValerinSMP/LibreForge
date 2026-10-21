@@ -30,8 +30,8 @@ object EffectOrbitalShields : Effect<NoCompileData>("orbital_shields") {
         for (key in listOf("amount", "radius", "duration", "proc_cooldown")) require(key, "Specify $key.", type=ArgType.EXPRESSION)
     }
     override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
-        val event = data.event as? PlayerToggleSneakEvent ?: return false
-        if (!event.isSneaking || event.isCancelled || data.player !== event.player) return false
+        val player = data.player ?: return false
+        if (!OrbitalInput.matches(config.getStringOrNull("activation") ?: "sneak_start", player, data.event)) return false
         return OrbitalShields.invoke(config, data)
     }
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
@@ -112,6 +112,7 @@ internal class OrbitalRig(private val player: Player, count: Int, private val ra
 
 object OrbitalShields {
     private fun now() = System.nanoTime()/1_000_000L
+    private val gestures = com.willfp.libreforge.triggers.impl.PhysicalGestures()
     private val charges=OrbitalCharges { now() }
     private val boundary=OrbitalDamageBoundary(charges)
     private val key=NamespacedKey("libreforge","orbital_item")
@@ -165,10 +166,18 @@ object OrbitalShields {
     fun invoke(config:Config,data:TriggerData):Boolean {
         if (!Bukkit.isPrimaryThread() || !gameplay()) return false
         val player=data.player ?: return false
-        if (!player.isOnline || player.isDead || player.uniqueId in active) return false
+        if (!player.isOnline || player.isDead) return false
         val holder=root(data.holder);val supplied=holder.provider as? ItemStack ?: return false
         val held=player.inventory.itemInMainHand
         if (held.amount!=1 || supplied!=held) return false
+        if (!gestures.claim(player.uniqueId, Bukkit.getCurrentTick())) return false
+        val remaining=charges.remainingMillis(player.uniqueId)
+        if (remaining > 0) {
+            if (charges.claimNotice(player.uniqueId, config.getBoolOrNull("send_cooldown_message") == true))
+                OrbitalCooldownNotice.send(player, config, (remaining + 999L) / 1000L)
+            return false
+        }
+        if (player.uniqueId in active) return false
         val visual=profile(config.getString("profile")) ?: return false
         val amount=config.getDoubleFromExpression("amount",data);val radius=config.getDoubleFromExpression("radius",data)
         val duration=config.getDoubleFromExpression("duration",data);val cooldown=config.getDoubleFromExpression("proc_cooldown",data)

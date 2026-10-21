@@ -168,7 +168,7 @@ abstract class Trigger(
             if (data.event is Cancellable && data.event.isCancelled) {
                 // alt_click triggers are special and should be allowed to trigger even if the event is cancelled
                 // Otherwise, clicking the air will not trigger the alt_click trigger
-                if (this !is TriggerAltClick) {
+                if (this !is TriggerAltClick && !(this is com.willfp.libreforge.triggers.impl.TriggerPhysicalClick && this.accepts(data.event))) {
                     return
                 }
             }
