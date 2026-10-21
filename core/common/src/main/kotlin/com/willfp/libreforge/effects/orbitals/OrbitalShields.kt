@@ -121,6 +121,7 @@ object OrbitalShields {
     private val active=mutableMapOf<UUID,Active>()
     private val pending=IdentityHashMap<EntityDamageEvent,Pair<Active,OrbitalCharges.Lease>>()
     private val profiles=mutableMapOf<String,OrbitalProfile?>()
+    private val profilesYml by lazy { OrbitalProfilesYml(plugin) }
     private var task:BukkitTask?=null
     private var commandContext:ThreadLocal<*>?=null
     private var guardResolved=false
@@ -139,7 +140,7 @@ object OrbitalShields {
     private fun profile(id:String):OrbitalProfile? {
         if (!id.matches(Regex("[a-z0-9_-]{1,48}")) || (!profiles.containsKey(id) && profiles.size>=8)) return null
         if (profiles.containsKey(id)) return profiles[id]
-        val config=plugin.configYml.getSubsectionOrNull("orbital-shields.profiles.$id")
+        val config=profilesYml.getSubsectionOrNull("profiles.$id")
         val result=config?.let {
             runCatching {
                 val item=Material.matchMaterial(it.getString("item"))?.takeIf { m -> m.isItem && !m.isAir } ?: error("Invalid display item")

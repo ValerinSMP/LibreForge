@@ -1,0 +1,13 @@
+orbital-shields:
+profiles:
+  escudo_piloto:
+    item: shield
+    scale: 0.55
+    height: 1.1
+    speed: 0.09
+    break-particle: crit
+    invoke-sound: minecraft:block.amethyst_block.chime
+    break-sound: minecraft:item.shield.break
+    expire-sound: minecraft:block.amethyst_block.fall
+    volume: 0.6
+    pitch: 1.0
