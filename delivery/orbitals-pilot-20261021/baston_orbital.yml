@@ -1,0 +1,20 @@
+# EcoItems/items/pilotos/baston_orbital.yml — piloto Dev, no oferta comercial.
+item:
+  item: blaze_rod
+  display-name: '&#FFDA29Bastón orbital'
+  lore:
+    - '&7Shift: invoca &#FFDA293 &7escudos durante &#FFDA298 s&7.'
+    - '&7Cada escudo bloquea un impacto directo elegible.'
+    - '&7Reutilización: &#FFDA2920 s&7.'
+slot: mainhand
+effects:
+  - id: orbital_shields
+    args:
+      profile: escudo_piloto
+      amount: 3
+      radius: 1.25
+      duration: 8
+      proc_cooldown: 20
+    triggers:
+      - toggle_sneak
+conditions: []

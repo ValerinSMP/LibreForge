@@ -146,6 +146,7 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
     }
 
     override fun handleReload() {
+        com.willfp.libreforge.effects.orbitals.OrbitalShields.reset()
         com.willfp.libreforge.effects.templates.MiningBatches.reload()
         com.willfp.libreforge.diagnostics.PerformanceMonitor.shutdown()
         HolderStates.reloadSettings()
@@ -203,6 +204,7 @@ class LibreforgeSpigotPlugin : EcoPlugin() {
     }
 
     override fun handleDisable() {
+        com.willfp.libreforge.effects.orbitals.OrbitalShields.reset()
         com.willfp.libreforge.effects.templates.MiningBatches.shutdown()
         com.willfp.libreforge.diagnostics.PerformanceMonitor.shutdown()
         // Fallback, if nothing earlier in the disable ran the shutdown sweep.

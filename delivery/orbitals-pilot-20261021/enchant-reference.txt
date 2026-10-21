@@ -1,0 +1,12 @@
+# Referencia nativa para un enchant existente (NO crear/activar un enchant nuevo en este piloto).
+# El mismo efecto usa el holder y condiciones del enchant, y solo el objeto empuñado.
+# Integrar esta entrada en effects, conservando las condiciones/requisitos propios:
+- id: orbital_shields
+  args:
+    profile: escudo_piloto
+    amount: 3
+    radius: 1.25
+    duration: 8
+    proc_cooldown: 20
+  triggers:
+    - toggle_sneak

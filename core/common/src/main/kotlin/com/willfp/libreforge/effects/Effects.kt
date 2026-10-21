@@ -566,6 +566,7 @@ object Effects : Registry<Effect<*>>() {
         register(EffectDamageItem)
         register(EffectDamageMainhand)
         register(EffectDamageMultiplier)
+        register(com.willfp.libreforge.effects.orbitals.EffectOrbitalShields)
         register(EffectPvpDamageMultiplier)
         register(EffectDamageNearbyEntities)
         register(EffectDamageOffhand)
