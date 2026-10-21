@@ -47,6 +47,7 @@ object EffectSetVelocity : Effect<NoCompileData>("set_velocity") {
         val player = data.player ?: return false
 
         plugin.scheduler.runLater(1) {
+            if (!com.willfp.libreforge.CombatTargets.anchor(data)) return@runLater
             player.velocity = Vector(
                 config.getDoubleFromExpression("x", data),
                 config.getDoubleFromExpression("y", data),

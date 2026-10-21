@@ -65,9 +65,10 @@ object EffectCreateExplosion : Effect<NoCompileData>("create_explosion"), Listen
         val fire = config.getBoolOrNull("create_fire") ?: true
         val breakBlocks = config.getBoolOrNull("break_blocks") ?: true
 
+        val targets = com.willfp.libreforge.CombatTargets.context(data)
         for (i in 1..amount) {
             plugin.scheduler.runLater(i.toLong()) {
-                world.createExplosion(location, power.toFloat(), fire, breakBlocks, source)
+                if (com.willfp.libreforge.CombatTargets.anchor(data)) com.willfp.libreforge.CombatTargets.with(targets) { world.createExplosion(location, power.toFloat(), fire, breakBlocks, source) }
                 }
             }
         return true

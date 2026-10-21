@@ -80,6 +80,7 @@ object EffectShockwave : Effect<DamageOrigin>("shockwave") {
         val source = if (config.getBool("use_source")) player else null
         val provenance = DamageProvenance(compileData, source?.uniqueId)
 
+        val targets = com.willfp.libreforge.CombatTargets.context(data)
         val hit = mutableSetOf<LivingEntity>()
         var pulse = 0
 
@@ -89,15 +90,17 @@ object EffectShockwave : Effect<DamageOrigin>("shockwave") {
 
             origin.world?.getNearbyEntities(origin, currentRadius, currentRadius, currentRadius)
                 ?.filterIsInstance<LivingEntity>()
-                ?.filter { it !in hit && it != player }
+                ?.filter { it !in hit && it != player && targets?.allows(it) != false }
                 ?.forEach { entity ->
                     hit.add(entity)
                     val dir = entity.location.toVector()
                         .subtract(origin.toVector())
                         .normalize()
                     entity.velocity = dir.multiply(knockback)
-                    DamageMultiplierBypass.withProvenance(provenance) {
-                        entity.dealDamage(damage, source, trueDamage)
+                    com.willfp.libreforge.CombatTargets.with(targets) {
+                        DamageMultiplierBypass.withProvenance(provenance) {
+                            entity.dealDamage(damage, source, trueDamage)
+                        }
                     }
                 }
 

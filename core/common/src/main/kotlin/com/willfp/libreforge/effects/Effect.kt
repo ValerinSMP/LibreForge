@@ -267,12 +267,15 @@ abstract class Effect<T>(
         trigger: DispatchedTrigger,
         config: ChainElement<T>
     ): Boolean {
+        if (!com.willfp.libreforge.CombatTargets.anchor(trigger.data)) return false
         if (com.willfp.libreforge.effects.impl.RepeatedDamage.skipNumeric(id, trigger.data)) return true
-        return onTrigger(
-            config.config,
-            trigger.data.copy().apply { this.inheritedTriggerPlaceholders = trigger.rawPlaceholders },
-            config.compileData
-        )
+        return com.willfp.libreforge.CombatTargets.with(com.willfp.libreforge.CombatTargets.context(trigger.data)) {
+            onTrigger(
+                config.config,
+                trigger.data.copy().apply { this.inheritedTriggerPlaceholders = trigger.rawPlaceholders },
+                config.compileData
+            )
+        }
     }
 
     /**
@@ -297,7 +300,7 @@ abstract class Effect<T>(
     fun shouldTrigger(
         trigger: DispatchedTrigger,
         config: ChainElement<T>
-    ): Boolean = shouldTrigger(config.config, trigger.data, config.compileData)
+    ): Boolean = com.willfp.libreforge.CombatTargets.anchor(trigger.data) && shouldTrigger(config.config, trigger.data, config.compileData)
 
     /**
      * If the effect should trigger, ran before effect arguments in order
@@ -320,6 +323,7 @@ abstract class Effect<T>(
         plugin.runWhenEnabled {
             plugin.eventManager.unregisterListener(this)
             plugin.eventManager.registerListener(this)
+            com.willfp.libreforge.CombatTargets.register()
             postRegister()
             com.willfp.libreforge.effects.impl.AdditiveDamageGroups.reseatBoundary()
         }

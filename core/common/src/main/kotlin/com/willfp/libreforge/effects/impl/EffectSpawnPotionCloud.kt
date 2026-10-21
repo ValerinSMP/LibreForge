@@ -53,6 +53,7 @@ object EffectSpawnPotionCloud : Effect<NoCompileData>("spawn_potion_cloud") {
         val duration = config.getIntFromExpression("duration", data)
 
         val cloud = world.spawn(location, AreaEffectCloud::class.java)
+        if (!com.willfp.libreforge.CombatTargets.bind(cloud, com.willfp.libreforge.CombatTargets.context(data))) return false
         cloud.addCustomEffect(
             PotionEffect(
                 effect,

@@ -78,6 +78,7 @@ object EffectChainLightning : Effect<DamageOrigin>("chain_lightning") {
         var current = startVictim
 
         repeat(jumps) {
+            if (!com.willfp.libreforge.CombatTargets.allows(data, current)) return true
             hit.add(current)
             current.world.strikeLightningEffect(current.location)
             DamageMultiplierBypass.withProvenance(provenance) {
@@ -86,7 +87,7 @@ object EffectChainLightning : Effect<DamageOrigin>("chain_lightning") {
 
             val next = current.getNearbyEntities(range, range, range)
                 .filterIsInstance<LivingEntity>()
-                .filter { it !in hit && it != player }
+                .filter { it !in hit && it != player && com.willfp.libreforge.CombatTargets.allows(data, it) }
                 .minByOrNull { it.location.distanceSquared(current.location) }
                 ?: return true
 

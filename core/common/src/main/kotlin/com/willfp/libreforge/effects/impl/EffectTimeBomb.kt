@@ -54,13 +54,14 @@ object EffectTimeBomb : Effect<NoCompileData>("time_bomb") {
         val breakBlocks = config.getBoolOrNull("break_blocks") ?: false
         val glow = config.getBoolOrNull("glow") ?: true
 
+        val targets = com.willfp.libreforge.CombatTargets.context(data)
         if (glow) victim.isGlowing = true
 
         plugin.scheduler.runLater(fuse.toLong()) {
             if (glow) victim.isGlowing = false
-            if (!victim.isDead) {
+            if (!victim.isDead && targets?.allows(victim) != false) {
                 val loc = victim.location
-                loc.world?.createExplosion(loc, power.toFloat(), false, breakBlocks, victim)
+                com.willfp.libreforge.CombatTargets.with(targets) { loc.world?.createExplosion(loc, power.toFloat(), false, breakBlocks, victim) }
             }
         }
 

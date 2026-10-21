@@ -14,6 +14,7 @@ fun LivingEntity.dealDamage(
     checkAntigrief: Boolean = true,
     allowSelf: Boolean = false
 ): Boolean {
+    if (!CombatTargets.allows(this)) return false
     if (checkAntigrief && source != null && !AntigriefManager.canInjure(source, this)) {
         return false
     }

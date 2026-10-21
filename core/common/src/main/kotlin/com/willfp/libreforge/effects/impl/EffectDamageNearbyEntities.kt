@@ -106,7 +106,7 @@ object EffectDamageNearbyEntities : Effect<DamageNearbyEntitiesCompileData>("dam
                 continue
             }
 
-            if (!AntigriefManager.canInjure(player, entity)) {
+            if (!com.willfp.libreforge.CombatTargets.allows(data, entity) || !AntigriefManager.canInjure(player, entity)) {
                 continue
             }
 

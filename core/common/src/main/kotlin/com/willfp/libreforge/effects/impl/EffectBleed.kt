@@ -74,9 +74,11 @@ object EffectBleed : Effect<DamageOrigin>("bleed") {
         val source = if (config.getBool("use_source")) data.player else null
         val provenance = DamageProvenance(compileData, source?.uniqueId)
 
+        val targets = com.willfp.libreforge.CombatTargets.context(data)
         var current = 0
 
-        plugin.runnableFactory.create {
+        plugin.runnableFactory.create { task ->
+            if (targets?.allows(victim) == false) { task.cancel(); return@create }
             current++
 
             val killed = damage >= victim.health
@@ -94,12 +96,14 @@ object EffectBleed : Effect<DamageOrigin>("bleed") {
                 }
             }
 
-            DamageMultiplierBypass.withProvenance(provenance) {
-                victim.dealDamage(damage, source, trueDamage)
+            com.willfp.libreforge.CombatTargets.with(targets) {
+                DamageMultiplierBypass.withProvenance(provenance) {
+                    victim.dealDamage(damage, source, trueDamage)
+                }
             }
 
             if (current >= amount || killed) {
-                it.cancel()
+                task.cancel()
             }
         }.runTaskTimer(interval.toLong(), interval.toLong())
 

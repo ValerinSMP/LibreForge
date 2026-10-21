@@ -37,7 +37,7 @@ object EffectSwarm : Effect<List<TestableEntity>?>("swarm") {
 
         victim.getNearbyEntities(radius, radius, radius)
             .filterIsInstance<Monster>()
-            .filter { compileData?.any { t -> t.matches(it) } ?: true }
+            .filter { (compileData?.any { t -> t.matches(it) } ?: true) && com.willfp.libreforge.CombatTargets.allows(data, it) }
             .forEach { it.target = victim }
 
         return true

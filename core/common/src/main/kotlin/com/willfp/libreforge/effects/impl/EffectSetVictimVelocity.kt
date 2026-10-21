@@ -47,6 +47,8 @@ object EffectSetVictimVelocity : Effect<NoCompileData>("set_victim_velocity") {
         val victim = data.victim ?: return false
 
         plugin.scheduler.runLater(1) {
+            if (!com.willfp.libreforge.CombatTargets.anchor(data)) return@runLater
+            if (!com.willfp.libreforge.CombatTargets.allows(data, victim)) return@runLater
             victim.velocity = Vector(
                 config.getDoubleFromExpression("x", data),
                 config.getDoubleFromExpression("y", data),

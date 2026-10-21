@@ -64,7 +64,7 @@ object EffectAOE : Effect<AOECompileData>("aoe") {
             location.direction.toFloat3(),
             location.world,
             data
-        ).filterNot { it.uniqueId == data.dispatcher.uuid } }
+        ).filterNot { it.uniqueId == data.dispatcher.uuid }.filter { com.willfp.libreforge.CombatTargets.allows(data, it) } }
 
         for (entity in entities) {
             compileData.chain

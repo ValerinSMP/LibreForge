@@ -35,9 +35,10 @@ object EffectStrikeLightning : Effect<NoCompileData>("strike_lightning") {
 
         val amount = config.getOrElse("amount", 1) { getIntFromExpression(it, data) }
 
+        val targets = com.willfp.libreforge.CombatTargets.context(data)
         for (i in 1..amount) {
             plugin.scheduler.runLater({
-                world.strikeLightning(location)
+                if (com.willfp.libreforge.CombatTargets.anchor(data)) com.willfp.libreforge.CombatTargets.with(targets) { world.strikeLightning(location) }
             }, 1)
         }
 

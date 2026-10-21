@@ -51,7 +51,13 @@ class TriggerData(
     // The holders and dispatchers are automatically added when triggers are dispatched,
     // so they are not included in the constructor.
     var holder: ProvidedHolder = EmptyProvidedHolder
-        internal set
+        internal set(value) {
+            if (field !== value) {
+                combatTargetContext = null
+                combatTargetsPrepared = false
+            }
+            field = value
+        }
 
     /*
     This is a bodge inherited from v3, but it's the only real way to do this.
@@ -61,6 +67,10 @@ class TriggerData(
     It's really not very nice, but it's good enough. Just don't think about it.
      */
     internal var originalPlayer: Player? = player
+
+    // Captured before mutation/delay; copied with the original player and holder provenance.
+    internal var combatTargetContext: com.willfp.libreforge.CombatTargets.Context? = null
+    internal var combatTargetsPrepared: Boolean = false
 
     /*
     This is a patch that allows for more fluent TriggerData -> DispatchedTrigger
@@ -146,6 +156,8 @@ class TriggerData(
 
         copy.holder = this.holder
         copy.originalPlayer = this.originalPlayer
+        copy.combatTargetContext = this.combatTargetContext
+        copy.combatTargetsPrepared = this.combatTargetsPrepared
         copy.inheritedTriggerPlaceholders = this.inheritedTriggerPlaceholders
 
         return copy

@@ -33,8 +33,10 @@ object EffectStun : Effect<NoCompileData>("stun") {
         val victim = data.victim ?: return false
         val ticks = config.getIntFromExpression("ticks", data)
 
+        val targets = com.willfp.libreforge.CombatTargets.context(data)
         var current = 0
         plugin.runnableFactory.create {
+            if (targets?.allows(victim) == false) { it.cancel(); return@create }
             current++
             victim.velocity = Vector(0, 0, 0)
             if (current >= ticks) it.cancel()

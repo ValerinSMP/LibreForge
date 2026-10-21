@@ -63,7 +63,7 @@ object EffectFrostNova : Effect<NoCompileData>("frost_nova") {
 
         location.world?.getNearbyEntities(location, radius, radius, radius)
             ?.filterIsInstance<LivingEntity>()
-            ?.filter { it != player }
+            ?.filter { it != player && com.willfp.libreforge.CombatTargets.allows(data, it) }
             ?.forEach { entity ->
                 entity.freezeTicks = freezeTicks
                 if (slowDuration > 0) {

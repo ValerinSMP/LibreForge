@@ -69,6 +69,7 @@ abstract class ElementLike : ConfigurableElement {
     ) { triggerMeasured(trigger) }
 
     private fun triggerMeasured(trigger: DispatchedTrigger): Boolean {
+        com.willfp.libreforge.CombatTargets.context(trigger.data)
         // If own chain, defer all to elements.
         if (shouldDelegateExecution) {
             return doTrigger(trigger)

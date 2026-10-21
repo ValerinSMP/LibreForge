@@ -76,7 +76,7 @@ object EffectSoulRip : Effect<DamageOrigin>("soul_rip") {
 
         val targets = location.world?.getNearbyEntities(location, radius, radius, radius)
             ?.filterIsInstance<LivingEntity>()
-            ?.filter { it != player }
+            ?.filter { it != player && com.willfp.libreforge.CombatTargets.allows(data, it) }
             ?.takeIf { it.isNotEmpty() }
             ?: return false
 

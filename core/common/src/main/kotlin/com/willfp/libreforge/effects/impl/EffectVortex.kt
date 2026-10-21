@@ -98,6 +98,7 @@ object EffectVortex : Effect<DamageOrigin>("vortex") {
         val whitelist = config.getStringsOrNull("whitelist")?.map { Entities.lookup(it) }
         val blacklist = config.getStrings("blacklist").map { Entities.lookup(it) }
 
+        val targets = com.willfp.libreforge.CombatTargets.context(data)
         val affected = mutableSetOf<LivingEntity>()
         var tick = 0
 
@@ -107,7 +108,7 @@ object EffectVortex : Effect<DamageOrigin>("vortex") {
             origin.world?.getNearbyEntities(origin, radius, radius, radius)
                 ?.asSequence()
                 ?.filterIsInstance<LivingEntity>()
-                ?.filter { it != player }
+                ?.filter { it != player && targets?.allows(it) != false }
                 ?.filterNot { it.hasMetadata("NPC") }
                 ?.filterNot { entity -> blacklist.any { it.matches(entity) } }
                 ?.filter { entity -> whitelist == null || whitelist.any { it.matches(entity) } }
@@ -121,9 +122,11 @@ object EffectVortex : Effect<DamageOrigin>("vortex") {
                 }
 
             if (tick >= duration) {
-                affected.forEach {
-                    DamageMultiplierBypass.withProvenance(provenance) {
-                        it.dealDamage(damage, source, trueDamage)
+                affected.filter { targets?.allows(it) != false }.forEach {
+                    com.willfp.libreforge.CombatTargets.with(targets) {
+                        DamageMultiplierBypass.withProvenance(provenance) {
+                            it.dealDamage(damage, source, trueDamage)
+                        }
                     }
                 }
                 task.cancel()
