@@ -22,10 +22,15 @@ import kotlin.math.*
 
 object EffectOrbitalShields : Effect<NoCompileData>("orbital_shields") {
     override val supportsDelay = false
-    override val description = "Invokes bounded charge shields from the equipped item when sneaking starts."
+    override val description = "Invokes charge shields from the equipped item using the configured physical input."
     override val categories = setOf("combat", "visual")
     override val parameters = setOf(TriggerParameter.PLAYER, TriggerParameter.EVENT)
     override val arguments = arguments {
+        optional("activation",description="Physical input for this effect only.",type=ArgType.STRING,default="sneak_start",choices=OrbitalInput.modes.toList())
+        optional("send_cooldown_message",description="Show the optional bounded actionbar notice.",type=ArgType.BOOLEAN,default="false")
+        optional("cooldown_message",description="Local cooldown text, supports %seconds%.",type=ArgType.STRING)
+        optional("cooldown_message_duration",description="Temporary notice duration in milliseconds (50..10000).",type=ArgType.INT,default="1000")
+        optional("source_level","Captured source tier for visual metadata only.",type=ArgType.EXPRESSION)
         require("profile", "Specify an orbital visual profile.", type=ArgType.STRING)
         for (key in listOf("amount", "radius", "duration", "proc_cooldown")) require(key, "Specify $key.", type=ArgType.EXPRESSION)
     }
@@ -36,9 +41,9 @@ object EffectOrbitalShields : Effect<NoCompileData>("orbital_shields") {
     }
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
     fun damage(event: EntityDamageByEntityEvent) = OrbitalShields.damage(event)
-    @EventHandler fun quit(event: PlayerQuitEvent) = OrbitalShields.close(event.player.uniqueId)
-    @EventHandler fun death(event: PlayerDeathEvent) = OrbitalShields.close(event.entity.uniqueId)
-    @EventHandler fun world(event: PlayerChangedWorldEvent) = OrbitalShields.close(event.player.uniqueId)
+    @EventHandler fun quit(event: PlayerQuitEvent) = OrbitalShields.close(event.player.uniqueId,"quit")
+    @EventHandler fun death(event: PlayerDeathEvent) = OrbitalShields.close(event.entity.uniqueId,"death")
+    @EventHandler fun world(event: PlayerChangedWorldEvent) = OrbitalShields.close(event.player.uniqueId,"world_change")
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
     fun slot(event: PlayerItemHeldEvent) { if(event.newSlot != event.previousSlot) OrbitalShields.close(event.player.uniqueId) }
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
@@ -59,57 +64,6 @@ object EffectOrbitalShields : Effect<NoCompileData>("orbital_shields") {
     @EventHandler fun disable(event: PluginDisableEvent) = OrbitalShields.disabled(event)
 }
 
-internal data class OrbitalProfile(val item: Material, val scale: Float, val height: Double,
-    val speed: Double, val particle: Particle, val invoke: String, val breaking: String, val expiry: String, val volume: Float, val pitch: Float)
-
-/** The representation owns only displays; charge and damage decisions stay in OrbitalShields. */
-internal class OrbitalRig(private val player: Player, count: Int, private val radius: Double, private val profile: OrbitalProfile) {
-    private val displays = arrayOfNulls<ItemDisplay>(count)
-    init {
-        try { repeat(count) { index ->
-            val location = frame(player.location, index, count, 0.0, radius, profile.height, profile.speed)
-            check(player.world.isChunkLoaded(location.blockX shr 4,location.blockZ shr 4)) { "Display chunk unavailable" }
-            displays[index] = player.world.spawn(location, ItemDisplay::class.java) { display ->
-                displays[index]=display
-                display.isPersistent=false; display.isInvulnerable=true; display.setGravity(false)
-                display.isSilent=true; display.setItemStack(ItemStack(profile.item))
-                display.itemDisplayTransform=ItemDisplay.ItemDisplayTransform.FIXED
-                display.teleportDuration=2; display.interpolationDuration=2; display.viewRange=0.5f
-                val transformation=display.transformation; transformation.scale.set(profile.scale)
-                display.transformation=transformation
-            }
-            check(displays[index]?.isValid==true) { "Display spawn rejected" }
-        } } catch (failure: RuntimeException) { close(); throw failure }
-            catch (failure: LinkageError) { close(); throw failure }
-    }
-    fun render(ageTicks: Double): Boolean {
-        for ((index, display) in displays.withIndex()) if (display != null) {
-            if (!display.isValid) return false
-            val next=frame(player.location,index,displays.size,ageTicks,radius,profile.height,profile.speed)
-            if (!next.world.isChunkLoaded(next.blockX shr 4,next.blockZ shr 4)) return false
-            display.teleport(next)
-        }
-        return true
-    }
-    fun breakShield(index: Int) {
-        val display=displays.getOrNull(index) ?: return
-        val location=display.location; display.remove(); displays[index]=null
-        player.world.spawnParticle(profile.particle,location,6,0.12,0.18,0.12,0.02)
-        sound(profile.breaking,location)
-    }
-    fun sound(name: String, location: Location = player.location) {
-        if (name.isNotEmpty()) player.playSound(location,name,SoundCategory.PLAYERS,profile.volume,profile.pitch)
-    }
-    fun expire() { sound(profile.expiry); close() }
-    fun close() { for(index in displays.indices) { runCatching { displays[index]?.remove() }; displays[index]=null } }
-    companion object {
-        fun frame(origin: Location, index: Int, count: Int, age: Double, radius: Double, height: Double, speed: Double): Location {
-            val angle=2*PI*index/count + age*speed
-            return origin.clone().add(cos(angle)*radius,height,sin(angle)*radius).apply { yaw=Math.toDegrees(angle).toFloat()+90; pitch=0f }
-        }
-    }
-}
-
 object OrbitalShields {
     private fun now() = System.nanoTime()/1_000_000L
     private val gestures = com.willfp.libreforge.triggers.impl.PhysicalGestures()
@@ -118,11 +72,9 @@ object OrbitalShields {
     private val key=NamespacedKey("libreforge","orbital_item")
     private val petKey=NamespacedKey("vpets","pet-owner")
     private class Active(val player: Player, val token: UUID, val world: UUID, val slot: Int,
-        val item: UUID, val holder: ProvidedHolder, val context: CombatTargets.Context?, val since: Long, val rig: OrbitalRig)
+        val item: UUID, val holder: ProvidedHolder, val context: CombatTargets.Context?, var remaining: Int, val visual: com.willfp.libreforge.visual.VisualSession?)
     private val active=mutableMapOf<UUID,Active>()
     private val pending=IdentityHashMap<EntityDamageEvent,Pair<Active,OrbitalCharges.Lease>>()
-    private val profiles=mutableMapOf<String,OrbitalProfile?>()
-    private val profilesYml by lazy { OrbitalProfilesYml(plugin) }
     private var task:BukkitTask?=null
     private var commandContext:ThreadLocal<*>?=null
     private var guardResolved=false
@@ -137,26 +89,6 @@ object OrbitalShields {
               catch(failure:RuntimeException) { plugin.logger.log(java.util.logging.Level.WARNING,"Orbital shields unavailable: native command origin guard",failure) }
         }
         return commandContext?.get()==null && commandContext!=null
-    }
-    private fun profile(id:String):OrbitalProfile? {
-        if (!id.matches(Regex("[a-z0-9_-]{1,48}")) || (!profiles.containsKey(id) && profiles.size>=8)) return null
-        if (profiles.containsKey(id)) return profiles[id]
-        val config=profilesYml.getSubsectionOrNull("profiles.$id")
-        val result=config?.let {
-            runCatching {
-                val item=Material.matchMaterial(it.getString("item"))?.takeIf { m -> m.isItem && !m.isAir } ?: error("Invalid display item")
-                val scale=it.getDouble("scale");val height=it.getDouble("height");val speed=it.getDouble("speed")
-                val volume=it.getDouble("volume");val pitch=it.getDouble("pitch")
-                require(scale.isFinite() && scale in 0.1..1.0 && height.isFinite() && height in 0.0..2.5 && speed.isFinite() && speed in 0.01..0.3)
-                require(volume.isFinite() && volume in 0.0..1.0 && pitch.isFinite() && pitch in 0.5..2.0)
-                fun sound(path:String)=it.getString(path).also { name -> require(name.isEmpty() || NamespacedKey.fromString(name)?.let { k -> org.bukkit.Registry.SOUNDS.get(k) }!=null) }
-                val particle=Particle.valueOf(it.getString("break-particle").uppercase())
-                require(particle.dataType==Void::class.java) { "Break particle must not require extra data" }
-                OrbitalProfile(item,scale.toFloat(),height,speed,particle,sound("invoke-sound"),sound("break-sound"),sound("expire-sound"),volume.toFloat(),pitch.toFloat())
-            }.onFailure { failure -> plugin.logger.warning("Orbital profile $id unavailable: ${failure.message}") }.getOrNull()
-        }
-        profiles[id]=result
-        return result
     }
     private fun root(provided:ProvidedHolder):ProvidedHolder {
         var result=provided
@@ -178,32 +110,33 @@ object OrbitalShields {
             return false
         }
         if (player.uniqueId in active) return false
-        val visual=profile(config.getString("profile")) ?: return false
         val amount=config.getDoubleFromExpression("amount",data);val radius=config.getDoubleFromExpression("radius",data)
         val duration=config.getDoubleFromExpression("duration",data);val cooldown=config.getDoubleFromExpression("proc_cooldown",data)
         if (!amount.isFinite() || amount != floor(amount) || amount !in 1.0..6.0 || !radius.isFinite() || radius !in 0.5..3.0 ||
             !duration.isFinite() || duration !in 0.05..30.0 || !cooldown.isFinite() || cooldown !in 0.05..120.0) return false
         val session=charges.start(player.uniqueId,amount.toInt(),(duration*1000).toLong(),(cooldown*1000).toLong()) ?: return false
-        var rig:OrbitalRig?=null
+        var visual:com.willfp.libreforge.visual.VisualSession?=null
         try {
             val meta=held.itemMeta ?: error("Missing item metadata")
             val item=meta.persistentDataContainer.get(key,PersistentDataType.STRING)?.let { runCatching { UUID.fromString(it) }.getOrNull() } ?: UUID.randomUUID()
             meta.persistentDataContainer.set(key,PersistentDataType.STRING,item.toString());held.itemMeta=meta
             player.inventory.setItemInMainHand(held)
-            rig=OrbitalRig(player,amount.toInt(),radius,visual)
-            active[player.uniqueId]=Active(player,session.token,player.world.uid,player.inventory.heldItemSlot,item,holder,CombatTargets.context(data),now(),rig)
-            rig.sound(visual.invoke)
+            visual=com.willfp.libreforge.visual.VisualPhases.open(config.getString("profile"),com.willfp.libreforge.visual.VisualContext(
+                session.token,holder.holder.id.namespace,holder.holder.id.toString(),if(config.has("source_level"))runCatching{config.getIntFromExpression("source_level",data)}.getOrDefault(-1) else 0,player.uniqueId,player.location,player.eyeLocation.direction,(duration*1000).toLong(),amount.toInt(),item,radius))
+            active[player.uniqueId]=Active(player,session.token,player.world.uid,player.inventory.heldItemSlot,item,holder,CombatTargets.context(data),amount.toInt(),visual)
+            visual?.emit(com.willfp.libreforge.visual.VisualPhase.ACTIVATE)
+            visual?.emit(com.willfp.libreforge.visual.VisualPhase.ACTIVE)
             if(task==null) task=Bukkit.getScheduler().runTaskTimer(plugin,Runnable {
                 try { tick() } catch(failure:RuntimeException) { reset();plugin.logger.log(java.util.logging.Level.WARNING,"Orbital shields stopped after runtime failure",failure) }
                   catch(failure:LinkageError) { reset();plugin.logger.log(java.util.logging.Level.WARNING,"Orbital shields stopped after runtime linkage failure",failure) }
             },1L,1L)
             return true
         } catch(failure:RuntimeException) {
-            rig?.close();active.remove(player.uniqueId);charges.abort(player.uniqueId,session.token)
+            visual?.close("invocation_failure");active.remove(player.uniqueId);charges.abort(player.uniqueId,session.token)
             plugin.logger.log(java.util.logging.Level.WARNING,"Orbital shield invocation failed",failure)
             return false
         } catch(failure:LinkageError) {
-            rig?.close();active.remove(player.uniqueId);charges.abort(player.uniqueId,session.token)
+            visual?.close("invocation_failure");active.remove(player.uniqueId);charges.abort(player.uniqueId,session.token)
             plugin.logger.log(java.util.logging.Level.WARNING,"Orbital shield invocation unavailable",failure)
             return false
         }
@@ -239,19 +172,20 @@ object OrbitalShields {
         } catch(failure:RuntimeException) { close(player.uniqueId);plugin.logger.log(java.util.logging.Level.WARNING,"Orbital damage boundary stopped",failure) }
           catch(failure:LinkageError) { close(player.uniqueId);plugin.logger.log(java.util.logging.Level.WARNING,"Orbital damage boundary unavailable",failure) }
     }
-    private var frame=0
     private fun tick() {
         val resolved=pending.values.toList();pending.clear()
         for((state,lease) in resolved) {
             val index=boundary.finish(lease)
-            if(index!=null && active[lease.player]===state && state.player.isOnline && state.player.world.uid==state.world) state.rig.breakShield(index)
+            if(index!=null && active[lease.player]===state) {
+                state.remaining--
+                state.visual?.emit(com.willfp.libreforge.visual.VisualPhase.CHARGE_SPENT,index=index,remaining=state.remaining)
+                if(state.remaining==0)close(lease.player,"charges_spent",false)
+            }
         }
-        frame++
         for((id,state) in active.toMap()) {
             val expires=charges.current(id)?.expires
-            if(expires!=null && expires<=now()) { state.rig.expire();close(id);continue }
+            if(expires!=null && expires<=now()) { close(id,"duration",false);continue }
             if(!valid(state)) { close(id);continue }
-            if(frame%2==0 && !state.rig.render((now()-state.since)/50.0))close(id)
         }
         if(active.isEmpty()) { task?.cancel();task=null }
     }
@@ -259,8 +193,9 @@ object OrbitalShields {
         val state=active[player.uniqueId] ?: return
         if(item.itemMeta?.persistentDataContainer?.get(key,PersistentDataType.STRING)==state.item.toString())close(player.uniqueId)
     }
-    fun close(player:UUID) { active.remove(player)?.rig?.close();charges.close(player) }
-    fun reset() { active.keys.toList().forEach { close(it) };pending.clear();task?.cancel();task=null;profiles.clear() }
+    fun close(player:UUID) = close(player,"item_change",true)
+    internal fun close(player:UUID,reason:String,interrupted:Boolean=true) { active.remove(player)?.visual?.close(reason,interrupted);charges.close(player) }
+    fun reset() { active.keys.toList().forEach { close(it,"provider_reload") };pending.clear();task?.cancel();task=null }
     fun disabled(event:PluginDisableEvent) {
         if(event.plugin===plugin) { reset();return }
         active.filterValues { it.holder.holder.javaClass.classLoader===event.plugin.javaClass.classLoader }.keys.toList().forEach { close(it) }

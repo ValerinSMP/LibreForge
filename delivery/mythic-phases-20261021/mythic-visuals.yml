@@ -1,0 +1,42 @@
+profiles:
+  escudo_piloto:
+    phases:
+      activate:
+      - VE_Escudos_Aparecer
+      active:
+      - VE_Orbita_0
+      - VE_Orbita_1
+      - VE_Orbita_2
+      charge_spent:
+      - VE_Escudos_Romper
+      deactivate:
+      - VE_Escudos_Fin
+      interrupt:
+      - VE_Escudos_Interrumpir
+  ruptura_sonica:
+    phases:
+      activate:
+      - VE_Ruptura_Corte
+      - VE_Ruptura_Sonido
+      damage_confirmed:
+      - VE_Ruptura_Impacto
+  brasa_errante:
+    phases:
+      activate:
+      - VE_Brasa_Inicio
+      damage_confirmed:
+      - VE_Brasa_Impacto
+  eco_resonante_progress:
+    phases:
+      hit:
+      - VE_Eco_Progreso
+  eco_resonante_resolved:
+    phases:
+      hit:
+      - VE_Eco_Impacto
+  herramienta_viajera:
+    phases:
+      activate:
+      - VE_Viajera_Inicio
+      launch:
+      - VE_Viajera_Trayecto

@@ -12,6 +12,7 @@ import com.willfp.libreforge.triggers.Triggers
 object MythicMobsIntegration : LoadableIntegration {
     override fun load(plugin: EcoPlugin) {
         Effects.register(EffectCastMythicSkill)
+        com.willfp.libreforge.plugin.runWhenEnabled { com.willfp.libreforge.integrations.mythicmobs.visual.MythicVisuals.install() }
         plugin.eventManager.registerListener(MythicMobsTelekinesisListener)
         plugin.eventManager.registerListener(MythicMobsKillListener)
         Triggers.register(TriggerTakeMythicDamage)

@@ -1,0 +1,14 @@
+{
+  "yamlSyntaxFiles": 6,
+  "skillDefinitions": 25,
+  "mappedProfiles": 6,
+  "allowedMechanics": [
+    "ecosuite_visual_bind",
+    "orbital",
+    "particles",
+    "projectile",
+    "slash",
+    "sound"
+  ],
+  "realMythicParserExecuted": false
+}

@@ -1,0 +1,85 @@
+# Cosmetic only. Native EcoSuite remains the damage/charge authority.
+VE_Escudos_Aparecer:
+  Skills:
+  - sound{s=block.amethyst_block.chime;v=0.6;p=1} @self
+VE_Bind_0:
+  Skills:
+  - ecosuite_visual_bind{index=0}
+VE_Orbita_0:
+  Skills:
+  - orbital{auraName=VE_<skill.eco_session>_0;onStart=VE_Bind_0;bulletType=DISPLAY;bulletMaterial=SHIELD;bulletScale=0.70,0.70,0.70;bulletBillboard=FIXED;rotation=0,0,0;bulletEnchanted=false;bulletBrightness=15;bulletCullingDistance=24;radius=<skill.eco_radius>;offsety=1.1;points=72;startingpoint=0;interval=1;duration=<skill.eco_duration_ticks>;hitPlayers=false;hitNonPlayers=false;hitSelf=false}
+    @self
+VE_Bind_1:
+  Skills:
+  - ecosuite_visual_bind{index=1}
+VE_Orbita_1:
+  Skills:
+  - orbital{auraName=VE_<skill.eco_session>_1;onStart=VE_Bind_1;bulletType=DISPLAY;bulletMaterial=SHIELD;bulletScale=0.70,0.70,0.70;bulletBillboard=FIXED;rotation=0,0,0;bulletEnchanted=false;bulletBrightness=15;bulletCullingDistance=24;radius=<skill.eco_radius>;offsety=1.1;points=72;startingpoint=24;interval=1;duration=<skill.eco_duration_ticks>;hitPlayers=false;hitNonPlayers=false;hitSelf=false}
+    @self
+VE_Bind_2:
+  Skills:
+  - ecosuite_visual_bind{index=2}
+VE_Orbita_2:
+  Skills:
+  - orbital{auraName=VE_<skill.eco_session>_2;onStart=VE_Bind_2;bulletType=DISPLAY;bulletMaterial=SHIELD;bulletScale=0.70,0.70,0.70;bulletBillboard=FIXED;rotation=0,0,0;bulletEnchanted=false;bulletBrightness=15;bulletCullingDistance=24;radius=<skill.eco_radius>;offsety=1.1;points=72;startingpoint=48;interval=1;duration=<skill.eco_duration_ticks>;hitPlayers=false;hitNonPlayers=false;hitSelf=false}
+    @self
+VE_Bind:
+  Skills:
+  - ecosuite_visual_bind{index=-1}
+VE_Escudos_Romper:
+  Skills:
+  - particles{p=crit;amount=6;hS=0.12;vS=0.18;speed=0.02} @origin
+  - sound{s=item.shield.break;v=0.6;p=1} @origin
+VE_Escudos_Fin:
+  Skills:
+  - sound{s=block.amethyst_block.fall;v=0.6;p=1} @self
+VE_Escudos_Interrumpir:
+  Skills:
+  - particles{p=crit;amount=2;hS=0.2;vS=0.2;speed=0} @self
+VE_Ruptura_Corte:
+  Skills:
+  - projectile{onStart=VE_Bind;onTick=VE_Ruptura_Trazo;v=9;interval=2;maxRange=6;maxDuration=10;fromOrigin=true;hitPlayers=false;hitNonPlayers=false;stopAtBlock=true}
+    @Location{x=<skill.eco_target_x>;y=<skill.eco_target_y>;z=<skill.eco_target_z>}
+VE_Ruptura_Trazo:
+  Skills:
+  - slash{onPoint=VE_Ruptura_Punto;points=8;duration=0;width=1.8;height=0.7;angle=120;fromOrigin=true;matchCasterDirection=false;yaw=<skill.eco_yaw>}
+    @origin
+VE_Ruptura_Punto:
+  Skills:
+  - particles{p=electric_spark;amount=1;hS=0;vS=0;speed=0} @origin
+VE_Ruptura_Sonido:
+  Skills:
+  - sound{s=entity.warden.sonic_boom;v=0.35;p=1.2} @origin
+VE_Ruptura_Impacto:
+  Skills:
+  - particles{p=crit;amount=6;hS=0.2;vS=0.4;speed=0.02} @origin
+VE_Brasa_Inicio:
+  Skills:
+  - sound{s=block.fire.ambient;v=0.2;p=1.2} @origin
+VE_Brasa_Impacto:
+  Skills:
+  - particles{p=flame;amount=6;hS=0.2;vS=0.3;speed=0.01} @origin
+  - sound{s=entity.blaze.shoot;v=0.2;p=1.3} @origin
+VE_Eco_Progreso:
+  Skills:
+  - particles{p=end_rod;amount=3;hS=0.2;vS=0.3;speed=0} @origin
+VE_Eco_Impacto:
+  Skills:
+  - particles{p=end_rod;amount=8;hS=0.5;vS=0.3;speed=0.02} @origin
+  - sound{s=block.amethyst_block.chime;v=0.25;p=1} @origin
+VE_Viajera_Inicio:
+  Skills:
+  - sound{s=entity.player.attack.sweep;v=0.3;p=1.2} @origin
+VE_Viajera_Trayecto:
+  Skills:
+  - projectile{onStart=VE_Bind;onTick=VE_Viajera_Estela;onHit=VE_Viajera_Impacto;onEnd=VE_Viajera_Fallo;doEndSkillOnHit=false;bulletType=DISPLAY;bulletMaterial=IRON_PICKAXE;bulletScale=0.70,0.70,0.70;bulletBillboard=FIXED;rotation=0,0,0;bulletEnchanted=true;bulletBrightness=15;v=10;interval=1;maxRange=12;maxDuration=20;fromOrigin=true;hitPlayers=true;hitNonPlayers=true;stopAtEntity=true;stopAtBlock=true}
+    @Location{x=<skill.eco_target_x>;y=<skill.eco_target_y>;z=<skill.eco_target_z>}
+VE_Viajera_Estela:
+  Skills:
+  - particles{p=crit;amount=1;hS=0;vS=0;speed=0} @origin
+VE_Viajera_Impacto:
+  Skills:
+  - particles{p=crit;amount=5;hS=0.2;vS=0.2;speed=0.01} @origin
+VE_Viajera_Fallo:
+  Skills:
+  - particles{p=smoke;amount=2;hS=0.1;vS=0.1;speed=0} @origin

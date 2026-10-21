@@ -22,6 +22,9 @@ object EffectCastMythicSkill : Effect<NoCompileData>("cast_mythic_skill") {
     )
 
     override val arguments = arguments {
+        optional("visual_profile",description="Captured-context Mythic phase profile; no look-at retargeting.",type=ArgType.STRING)
+        optional("visual_duration_ms",description="Finite cosmetic session duration, milliseconds.",type=ArgType.INT)
+
         require(
             "skill",
             "You must specify the skill to cast!",
@@ -38,6 +41,17 @@ object EffectCastMythicSkill : Effect<NoCompileData>("cast_mythic_skill") {
 
     override fun onTrigger(config: Config, data: TriggerData, compileData: NoCompileData): Boolean {
         val player: Player = data.player ?: return false
+        val profile=config.getStringOrNull("visual_profile")
+        if(profile!=null) {
+            val capturedTarget=data.victim ?: return false
+            val session=com.willfp.libreforge.visual.VisualPhases.open(profile,com.willfp.libreforge.visual.VisualContext(
+                java.util.UUID.randomUUID(),data.holder.holder.id.namespace,data.holder.holder.id.toString(),
+                0,player.uniqueId,player.eyeLocation,player.eyeLocation.direction,
+                (config.getIntOrNull("visual_duration_ms")?:1000).coerceIn(50,30000).toLong(),0)) ?: return false
+            session.emit(com.willfp.libreforge.visual.VisualPhase.ACTIVATE,receiver=capturedTarget.uniqueId,location=capturedTarget.location)
+            return session.emit(com.willfp.libreforge.visual.VisualPhase.LAUNCH,receiver=capturedTarget.uniqueId,location=capturedTarget.location)
+        }
+
 
         var victim: LivingEntity? = data.victim ?: MythicUtil.getTargetedEntity(player)
 

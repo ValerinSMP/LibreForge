@@ -1,4 +1,5 @@
 dependencies {
+    testImplementation("io.lumine:Mythic:5.11.1") { isTransitive = false }
     testImplementation(kotlin("test"))
     testImplementation("org.mockito:mockito-core:5.20.0")
     testImplementation("com.willfp:eco:${findProperty("eco-version")}")

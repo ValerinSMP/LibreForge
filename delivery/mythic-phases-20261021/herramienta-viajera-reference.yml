@@ -1,0 +1,8 @@
+effects:
+- id: cast_mythic_skill
+  args:
+    skill: VE_Viajera_Trayecto
+    visual_profile: herramienta_viajera
+    visual_duration_ms: 1200
+  triggers:
+  - click_entity

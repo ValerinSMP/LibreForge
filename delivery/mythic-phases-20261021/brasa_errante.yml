@@ -1,0 +1,31 @@
+enabled: true
+display-name: Brasa errante
+description: '&7Al matar un objetivo, una brasa alcanza a otro a 3 bloques e inflige
+  &a%placeholder%%&7 del daño del golpe mortal (12 s).'
+placeholder: 2 + 2 * %level%
+type: normal
+targets:
+- sword
+conflicts:
+- eco_resonante
+rarity: epic
+max-level: 3
+tradeable: true
+discoverable: true
+enchantable: true
+effects:
+- id: native_burst
+  args:
+    family: brasa_errante
+    percent: 2 + 2 * %level%
+    visual_profile: brasa_errante
+  triggers:
+  - confirmed_native_burst
+conditions:
+- id: has_skill_level
+  args:
+    skill: enchanting
+    level: 21
+    not-met-lines:
+    - '&cRequiere Nivel de Encantador &lXXI'
+combat-mode: both

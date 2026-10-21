@@ -1,0 +1,32 @@
+enabled: true
+display-name: Ruptura sónica
+description: '&7Tras cuatro golpes al mismo objetivo en 6 s, emite una onda que inflige
+  un &a%placeholder%%&7 del último golpe a un máximo de 3 objetivos a 3 bloques (15
+  s).'
+placeholder: 4 + 2 * %level%
+type: normal
+targets:
+- sword
+conflicts:
+- eco_resonante
+rarity: epic
+max-level: 3
+tradeable: true
+discoverable: true
+enchantable: true
+effects:
+- id: native_burst
+  args:
+    family: ruptura_sonica
+    percent: 4 + 2 * %level%
+    visual_profile: ruptura_sonica
+  triggers:
+  - confirmed_native_burst
+conditions:
+- id: has_skill_level
+  args:
+    skill: enchanting
+    level: 33
+    not-met-lines:
+    - '&cRequiere Nivel de Encantador &lXXXIII'
+combat-mode: both

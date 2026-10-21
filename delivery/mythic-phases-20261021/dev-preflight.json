@@ -1,0 +1,32 @@
+{
+  "custom": {
+    "volume": "48d37562-51f7-48c7-812b-b295df2e8aeb",
+    "skillNameCollisions": [],
+    "enchantDefinitions": {
+      "ruptura_sonica": {
+        "baselineSha256": "4dcd3bfe6c2a00bd857cd76bf1c25761efb96572968bb3aaafd868ee2fa7ac3d",
+        "onlyVisualBindingChanges": true
+      },
+      "brasa_errante": {
+        "baselineSha256": "4599f9aa4823f924dda1a4b0771a94a3fcc9ce1efc1453a830cfcd2046752ee1",
+        "onlyVisualBindingChanges": true
+      }
+    },
+    "newSkillsDestinationExists": false
+  },
+  "sync": {
+    "volume": "90db2686-d703-4467-9b3a-7dcc0add36cf",
+    "skillNameCollisions": [],
+    "enchantDefinitions": {
+      "ruptura_sonica": {
+        "baselineSha256": "4dcd3bfe6c2a00bd857cd76bf1c25761efb96572968bb3aaafd868ee2fa7ac3d",
+        "onlyVisualBindingChanges": true
+      },
+      "brasa_errante": {
+        "baselineSha256": "4599f9aa4823f924dda1a4b0771a94a3fcc9ce1efc1453a830cfcd2046752ee1",
+        "onlyVisualBindingChanges": true
+      }
+    },
+    "newSkillsDestinationExists": false
+  }
+}

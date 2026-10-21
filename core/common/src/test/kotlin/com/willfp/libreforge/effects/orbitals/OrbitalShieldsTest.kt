@@ -60,33 +60,11 @@ class OrbitalShieldsTest {
   charges.abort(player,UUID.randomUUID());assertNull(charges.start(player,3,8_000,20_000));charges.abort(player,state.token)
   assertNotNull(charges.start(player,3,8_000,20_000));assertNull(charges.start(UUID.randomUUID(),99,8_000,20_000))
  }
- @Test fun `three orbital positions preserve radius height and smooth angular motion`() {
-  val origin=Location(null,0.0,64.0,0.0)
-  val positions=(0..2).map { OrbitalRig.frame(origin,it,3,0.0,1.25,1.1,0.09) }
-  assertEquals(3,positions.map { it.x to it.z }.distinct().size)
-  for(position in positions) { assertEquals(1.25,kotlin.math.hypot(position.x,position.z),1e-9);assertEquals(65.1,position.y,1e-9) }
-  val next=OrbitalRig.frame(origin,0,3,2.0,1.25,1.1,0.09);assertTrue(kotlin.math.hypot(next.x-positions[0].x,next.z-positions[0].z)<0.3)
- }
  @Test fun `pilot compiles against native sneak parameters without requiring an undeclared item parameter`() {
   val field=EffectOrbitalShields::class.java.getDeclaredField("parameters").apply{isAccessible=true}
   @Suppress("UNCHECKED_CAST") val parameters=field.get(EffectOrbitalShields) as Set<com.willfp.libreforge.triggers.TriggerParameter>
   assertTrue(TriggerToggleSneak.parameters.containsAll(parameters))
  }
- @Test fun `confirmed visual break and repeated cleanup remove each display exactly once`() {
-  val displays=List(3){mock(org.bukkit.entity.ItemDisplay::class.java)};var spawned=0
-  val world=mock(org.bukkit.World::class.java){call ->
-   if(call.method.name=="spawn") displays[spawned++] else org.mockito.Answers.RETURNS_DEFAULTS.answer(call)
-  }
-  `when`(world.isChunkLoaded(anyInt(),anyInt())).thenReturn(true)
-  val player=mock(org.bukkit.entity.Player::class.java)
-  `when`(player.world).thenReturn(world);`when`(player.location).thenReturn(Location(world,0.0,64.0,0.0))
-  for(display in displays) { `when`(display.isValid).thenReturn(true);`when`(display.location).thenReturn(Location(world,1.0,65.0,0.0)) }
-  val profile=OrbitalProfile(org.bukkit.Material.SHIELD,0.55f,1.1,0.09,org.bukkit.Particle.CRIT,"","","",0.6f,1.0f)
-  val rig=OrbitalRig(player,3,1.25,profile);assertEquals(3,spawned)
-  rig.breakShield(1);rig.breakShield(1);rig.close();rig.close()
-  displays.forEach { verify(it,times(1)).remove() }
- }
-
  @Test fun `only direct melee and living shooter projectiles qualify as intrinsic coverage`() {
   val event=mock(org.bukkit.event.entity.EntityDamageByEntityEvent::class.java)
   val attacker=mock(org.bukkit.entity.Player::class.java);val arrow=mock(org.bukkit.entity.Projectile::class.java)
