@@ -27,3 +27,11 @@ gradle-app.setting
 .worktrees
 
 .codegraph
+
+# Local documentation and AI working files (upstream tracked files stay tracked).
+*.md
+.codex/
+.agents/
+graphify-out/
+.opencode/
+opencode.json

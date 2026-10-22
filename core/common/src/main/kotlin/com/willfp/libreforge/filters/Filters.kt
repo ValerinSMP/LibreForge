@@ -101,6 +101,7 @@ object Filters : Registry<Filter<*, *>>() {
     }
 
     init {
+        register(com.willfp.libreforge.filters.impl.FilterActivePlayerAbility)
         register(FilterAboveHealthPercent)
         register(FilterAdvancements)
         register(FilterAltValueAbove)
