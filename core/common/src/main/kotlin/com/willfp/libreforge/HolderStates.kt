@@ -686,6 +686,10 @@ internal object HolderStates {
         return state.answerOf(provider, tick)
     }
 
+    /** Observation only: never admit a dispatcher, ask providers or flush pending work. */
+    internal fun peekPublishedEffects(uuid: UUID): Pair<List<ProvidedEffectBlock>, Boolean>? =
+        publishedActiveEffects[uuid]?.let { it to (states[uuid]?.let { state -> state in dirty } == true) }
+
     fun providedActiveEffects(dispatcher: Dispatcher<*>): List<ProvidedEffectBlock> {
         if (!Bukkit.isPrimaryThread()) {
             return publishedActiveEffects[dispatcher.uuid] ?: emptyList()
